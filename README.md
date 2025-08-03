@@ -400,10 +400,12 @@ pm2 save
 4. Use `TORNADO_CONFIG_PATH` env var for custom paths
 
 **Telegram alerts not working:**
-1. Verify bot token and chat ID are correct
-2. Check environment variables vs config file priority
-3. Ensure bot has permission to send messages  
-4. Look for "Telegram connection: ✅ OK" on startup
+1. Run `npm run test:alert` to diagnose issues
+2. Verify bot token and chat ID are correct
+3. Check environment variables vs config file priority
+4. Ensure bot has permission to send messages  
+5. Look for "Telegram connection: ✅ OK" on startup
+6. Send a message to your bot first to initialize the chat
 
 **API validation failing:**
 1. Check API endpoints are accessible
