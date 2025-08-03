@@ -276,8 +276,15 @@ class MultiNetworkMonitor {
   }
 }
 
-// Start the monitor if running directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Start the monitor if running directly or via PM2
+// Check if this is the main module being executed
+const isMainModule = process.argv[1] && (
+  import.meta.url === `file://${process.argv[1]}` || 
+  process.argv[1].includes('ProcessContainerFork.js') ||
+  process.argv[0].includes('node')
+);
+
+if (isMainModule) {
   // Check for config path argument
   const configPath = process.argv[2];
 
