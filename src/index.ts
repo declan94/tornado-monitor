@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
-import { TornadoApiResponse, HealthCheckResult, MonitorConfig, ConfigFile } from "./types";
-import { TelegramAlertSender } from "./telegram";
-import { ConfigLoader } from "./config";
+import { TornadoApiResponse, HealthCheckResult, MonitorConfig, ConfigFile } from "./types.js";
+import { TelegramAlertSender } from "./telegram.js";
+import { ConfigLoader } from "./config.js";
 
 class TornadoHealthMonitor {
   private config: MonitorConfig;

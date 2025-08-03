@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import { TelegramConfig } from "./types";
+import { TelegramConfig } from "./types.js";
 
 export class TelegramAlertSender {
   private config: TelegramConfig;

@@ -147,12 +147,27 @@ validate_config() {
         return 1
     fi
     
-    # Test the configuration
-    log_info "Testing configuration..."
-    if npm run test:alert > /dev/null 2>&1; then
-        log_success "Configuration test passed"
+    # Test Telegram connection only
+    log_info "Testing Telegram connection..."
+    if node -e "
+        import('./dist/config.js').then(({ ConfigLoader }) => {
+            const config = ConfigLoader.loadConfig();
+            const networkWithTelegram = config.networks.find(n => n.telegram && n.telegram.enabled);
+            if (!networkWithTelegram) {
+                console.log('No Telegram configuration found');
+                process.exit(1);
+            }
+            import('./dist/telegram.js').then(({ TelegramAlertSender }) => {
+                const sender = new TelegramAlertSender(networkWithTelegram.telegram);
+                sender.testConnection().then(result => {
+                    process.exit(result ? 0 : 1);
+                }).catch(() => process.exit(1));
+            });
+        }).catch(() => process.exit(1));
+    " > /dev/null 2>&1; then
+        log_success "Telegram connection test passed"
     else
-        log_warning "Configuration test failed - alerts may not work properly"
+        log_warning "Telegram connection test failed - alerts may not work"
         log_info "Continue with deployment? [y/N]"
         read -r response
         if [[ ! "$response" =~ ^[Yy]$ ]]; then
