@@ -360,34 +360,91 @@ To prevent alert spam:
 
 ## Production Deployment
 
-### Environment Variables
+### PM2 Process Manager (Recommended)
+
+The easiest way to deploy Tornado Monitor in production is using PM2 with the included deployment script.
+
+#### Quick Deployment
 
 ```bash
+# 1. Clone and build
+git clone <your-repo>
+cd tornado-monitor
+npm install
+npm run build
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your Telegram bot token and chat ID
+
+# 3. Deploy with PM2
+./deploy-pm2.sh production
+```
+
+#### What the deployment script does:
+
+- ✅ Installs PM2 if not present
+- ✅ Validates configuration and tests alerts
+- ✅ Sets up logging and auto-restart
+- ✅ Configures system startup
+- ✅ Provides status monitoring
+
+#### PM2 Management Commands
+
+```bash
+# Check status
+pm2 status tornado-monitor
+
+# View logs
+pm2 logs tornado-monitor
+
+# Restart application
+pm2 restart tornado-monitor
+
+# Stop application
+pm2 stop tornado-monitor
+
+# Monitor dashboard
+pm2 monit
+
+# Reload with zero downtime
+pm2 reload tornado-monitor
+```
+
+#### Environment Variables
+
+Create a `.env` file or set environment variables:
+
+```bash
+# Required
 export TELEGRAM_BOT_TOKEN="your_bot_token"
 export TELEGRAM_CHAT_ID="your_chat_id"
+
+# Optional
+export TELEGRAM_ENABLED="true"
+export MONITOR_INTERVAL="30"
+export MONITOR_TIMEOUT="10"
+export MAX_QUEUE="3"
+export MAX_FAILURES="3"
 ```
 
-### Docker Example
+#### Server Requirements
 
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --production
-COPY dist/ ./dist/
-CMD ["npm", "start"]
-```
+- **Node.js 18+**
+- **npm** or **yarn**
+- **PM2** (installed automatically by deploy script)
+- **Git** (for deployment)
 
-### Process Management
+#### Deployment Features
 
-Use PM2 or similar for production:
-
-```bash
-npm install -g pm2
-pm2 start dist/index.js --name tornado-monitor
-pm2 startup
-pm2 save
-```
+- **Auto-restart** on failures or crashes
+- **Memory monitoring** with automatic restart at 1GB
+- **Log rotation** with timestamped entries
+- **Health checks** and monitoring
+- **Graceful shutdown** handling
+- **System startup** integration
+- **Daily restart** scheduling (3 AM)
+- **Configuration backup** before deployment
 
 ## Troubleshooting
 

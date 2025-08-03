@@ -148,6 +148,12 @@ configs/
 !config.example.json
 !config.simple.json
 
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+
 # Log files
 *.log
 logs/
