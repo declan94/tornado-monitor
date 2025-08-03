@@ -37,22 +37,5 @@ module.exports = {
       // Graceful shutdown
       shutdown_with_message: true
     }
-  ],
-
-  // Deployment configuration
-  deploy: {
-    production: {
-      user: "deploy",
-      host: ["your-server.com"],
-      ref: "origin/main",
-      repo: "git@github.com:yourusername/tornado-monitor.git",
-      path: "/var/www/tornado-monitor",
-      "pre-deploy-local": "",
-      "post-deploy": "npm install && npm run build && pm2 reload ecosystem.config.js --env production",
-      "pre-setup": "",
-      env: {
-        NODE_ENV: "production"
-      }
-    }
-  }
+  ]
 };

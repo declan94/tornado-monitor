@@ -174,16 +174,17 @@ class TornadoHealthMonitor {
     console.log(`  Timeout: ${this.config.timeout / 1000}s`);
     console.log(`  Max failures: ${this.config.maxConsecutiveFailures}`);
 
-    if (this.telegramSender) {
-      console.log(`  Telegram alerts: Enabled`);
-      // Test connection on startup
-      const testResult = await this.telegramSender.testConnection();
-      if (testResult) {
-        console.log(`  Telegram connection: ✅ OK`);
-      } else {
-        console.log(`  Telegram connection: ❌ Failed`);
-      }
-    }
+    // do not test here to avoid duplicated messages for multiple networks and also restarting
+    // if (this.telegramSender) {
+    //   console.log(`  Telegram alerts: Enabled`);
+    //   // Test connection on startup
+    //   const testResult = await this.telegramSender.testConnection();
+    //   if (testResult) {
+    //     console.log(`  Telegram connection: ✅ OK`);
+    //   } else {
+    //     console.log(`  Telegram connection: ❌ Failed`);
+    //   }
+    // }
 
     // Initial check
     this.checkHealth();
@@ -274,8 +275,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
   const multiMonitor = new MultiNetworkMonitor(configPath);
 
+  // Start the monitor with proper error handling
   (async () => {
-    await multiMonitor.start();
+    try {
+      await multiMonitor.start();
+      console.log("Monitor started successfully and running...");
+    } catch (error) {
+      console.error("Failed to start monitor:", error);
+      process.exit(1);
+    }
   })();
 
   // Graceful shutdown
@@ -289,6 +297,20 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log("\nReceived SIGTERM, shutting down gracefully...");
     multiMonitor.stop();
     process.exit(0);
+  });
+
+  // Handle unhandled promise rejections
+  process.on("unhandledRejection", (reason, promise) => {
+    console.error("Unhandled Promise Rejection:", reason);
+    console.error("Promise:", promise);
+    // Don't exit on unhandled rejections, just log them
+  });
+
+  // Handle uncaught exceptions
+  process.on("uncaughtException", (error) => {
+    console.error("Uncaught Exception:", error);
+    multiMonitor.stop();
+    process.exit(1);
   });
 }
 
