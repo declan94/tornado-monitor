@@ -1,0 +1,12 @@
+{
+  "networks": [
+    {
+      "apiUrl": "https://tornado.bitah.link/v1/status",
+      "name": "Ethereum"
+    },
+    {
+      "apiUrl": "https://bsc-tornado.bitah.link/v1/status",
+      "name": "BSC"
+    }
+  ]
+}

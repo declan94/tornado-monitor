@@ -1,0 +1,30 @@
+{
+  "name": "tornado-monitor",
+  "version": "1.0.0",
+  "description": "Health monitoring service for Tornado API endpoint",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "start:config": "node dist/index.js config.json",
+    "dev": "tsx src/index.ts",
+    "dev:config": "tsx src/index.ts config.json",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "prettier --check src/**/*.ts",
+    "format": "prettier --write src/**/*.ts",
+    "config:create": "node -e \"console.log(JSON.stringify(require('./dist/config.js').ConfigLoader.createExampleConfig(), null, 2))\" > config.json"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "prettier": "^3.0.0"
+  },
+  "keywords": ["tornado", "monitoring", "health-check", "api"],
+  "author": "",
+  "license": "MIT"
+}
