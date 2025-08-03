@@ -18,13 +18,13 @@ module.exports = {
         NODE_ENV: "production"
       },
       // Logging configuration
-      log_file: "./logs/tornado-monitor.log",
       out_file: "./logs/tornado-monitor-out.log", 
       error_file: "./logs/tornado-monitor-error.log",
+      log_file: "./logs/tornado-monitor-combined.log",
       log_date_format: "YYYY-MM-DD HH:mm:ss Z",
       merge_logs: true,
-      // Log rotation
-      log_type: "json",
+      // Disable JSON logging for better readability
+      log_type: "text",
       // Health monitoring
       health_check_grace_period: 30000,
       // Advanced PM2 options
