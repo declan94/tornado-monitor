@@ -4,7 +4,7 @@ import { TelegramAlertSender } from "./telegram.js";
 import { ConfigLoader } from "./config.js";
 
 class TornadoHealthMonitor {
-  private config: MonitorConfig;
+  public config: MonitorConfig;
   private isRunning: boolean = false;
   private consecutiveFailures: number = 0;
   private lastSuccessfulCheck: string | null = null;
@@ -245,8 +245,16 @@ class MultiNetworkMonitor {
 
     // Start all monitors
     for (const monitor of this.monitors) {
-      await monitor.start();
+      console.log(`Starting monitor for network: ${monitor.config?.name || 'Unknown'}`);
+      try {
+        await monitor.start();
+        console.log(`✅ Monitor started for ${monitor.config?.name || 'Unknown'}`);
+      } catch (error) {
+        console.error(`❌ Failed to start monitor for ${monitor.config?.name || 'Unknown'}:`, error);
+      }
     }
+    
+    console.log("🎯 All monitors initialization completed");
   }
 
   stop(): void {
