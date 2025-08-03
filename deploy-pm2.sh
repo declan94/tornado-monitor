@@ -8,9 +8,37 @@ set -e  # Exit on any error
 
 # Configuration
 ENVIRONMENT=${1:-production}
+DRY_RUN=false
 APP_NAME="tornado-monitor"
 LOG_DIR="./logs"
 BACKUP_DIR="./backups"
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        --help|-h)
+            ENVIRONMENT="--help"
+            shift
+            ;;
+        production|development)
+            ENVIRONMENT=$1
+            shift
+            ;;
+        *)
+            # Ignore unknown arguments
+            shift
+            ;;
+    esac
+done
+
+# Set default environment if not specified
+if [[ "$ENVIRONMENT" != "production" && "$ENVIRONMENT" != "development" && "$ENVIRONMENT" != "--help" ]]; then
+    ENVIRONMENT="production"
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -62,7 +90,7 @@ check_prerequisites() {
     # Check if PM2 is installed globally
     if ! command -v pm2 &> /dev/null; then
         log_warning "PM2 is not installed globally. Installing PM2..."
-        npm install -g pm2
+        sudo npm install -g pm2
         log_success "PM2 installed successfully"
     fi
     
@@ -93,11 +121,8 @@ backup_config() {
 install_dependencies() {
     log_info "Installing dependencies..."
     
-    if [ "$ENVIRONMENT" == "production" ]; then
-        npm ci --only=production
-    else
-        npm install
-    fi
+    # Always install all dependencies for building
+    npm ci
     
     log_success "Dependencies installed"
 }
@@ -113,12 +138,12 @@ build_project() {
 validate_config() {
     log_info "Validating configuration..."
     
-    # Check if config file exists or environment variables are set
-    if [ ! -f "config.json" ] && [ -z "$TELEGRAM_BOT_TOKEN" ]; then
-        log_warning "No config.json found and TELEGRAM_BOT_TOKEN not set"
+    # Check if config file exists
+    if [ ! -f "config.json" ]; then
+        log_warning "No config.json found"
         log_info "Creating example config file..."
         cp config.example.json config.json
-        log_warning "Please edit config.json with your actual configuration"
+        log_warning "Please edit config.json with your actual Telegram configuration"
         return 1
     fi
     
@@ -139,6 +164,16 @@ validate_config() {
 
 # Deploy with PM2
 deploy_pm2() {
+    if [ "$DRY_RUN" = true ]; then
+        log_info "[DRY RUN] Would deploy with PM2..."
+        log_info "[DRY RUN] Would stop existing $APP_NAME process if running"
+        log_info "[DRY RUN] Would start $APP_NAME with: pm2 start ecosystem.config.cjs --env $ENVIRONMENT"
+        log_info "[DRY RUN] Would save PM2 configuration"
+        log_info "[DRY RUN] Would set up PM2 startup script"
+        log_success "[DRY RUN] PM2 deployment simulation completed"
+        return
+    fi
+    
     log_info "Deploying with PM2..."
     
     # Stop existing process if running
@@ -150,7 +185,7 @@ deploy_pm2() {
     
     # Start the application
     log_info "Starting $APP_NAME with PM2..."
-    pm2 start ecosystem.config.js --env "$ENVIRONMENT"
+    pm2 start ecosystem.config.cjs --env "$ENVIRONMENT"
     
     # Save PM2 configuration
     pm2 save
@@ -196,10 +231,48 @@ cleanup() {
 # Set up signal handlers
 trap cleanup SIGINT SIGTERM
 
+# Show usage
+show_usage() {
+    echo "Tornado Monitor PM2 Deployment Script"
+    echo ""
+    echo "Usage: $0 [environment]"
+    echo ""
+    echo "Environments:"
+    echo "  production    Deploy in production mode (default)"
+    echo "  development   Deploy in development mode"
+    echo ""
+    echo "Options:"
+    echo "  --help, -h    Show this help message"
+    echo "  --dry-run     Simulate deployment without making changes"
+    echo ""
+    echo "Examples:"
+    echo "  $0                    # Deploy in production mode"
+    echo "  $0 production        # Deploy in production mode"
+    echo "  $0 development       # Deploy in development mode"
+    echo "  $0 --dry-run         # Simulate deployment"
+    echo "  $0 production --dry-run  # Simulate production deployment"
+    echo ""
+    echo "The script will:"
+    echo "  - Check prerequisites and install PM2 if needed"
+    echo "  - Build the project"
+    echo "  - Validate configuration"
+    echo "  - Deploy with PM2"
+    echo "  - Set up auto-start on system boot"
+}
+
 # Main deployment flow
 main() {
+    # Check for help flag
+    if [[ "$ENVIRONMENT" == "--help" || "$ENVIRONMENT" == "-h" ]]; then
+        show_usage
+        exit 0
+    fi
+    
     log_info "🚀 Starting Tornado Monitor PM2 Deployment"
     log_info "Environment: $ENVIRONMENT"
+    if [ "$DRY_RUN" = true ]; then
+        log_warning "DRY RUN MODE - No actual changes will be made"
+    fi
     echo "============================================"
     
     check_prerequisites

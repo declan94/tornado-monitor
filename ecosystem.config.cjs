@@ -1,3 +1,4 @@
+// PM2 ecosystem configuration (CommonJS format)
 module.exports = {
   apps: [
     {
@@ -11,20 +12,10 @@ module.exports = {
       max_restarts: 10,
       min_uptime: "10s",
       env: {
-        NODE_ENV: "production",
-        // Default environment variables (can be overridden)
-        MONITOR_INTERVAL: "30",
-        MONITOR_TIMEOUT: "10", 
-        MAX_QUEUE: "3",
-        MAX_FAILURES: "3"
+        NODE_ENV: "production"
       },
       env_production: {
-        NODE_ENV: "production",
-        // Production-specific overrides
-        MONITOR_INTERVAL: "30",
-        MONITOR_TIMEOUT: "15",
-        MAX_QUEUE: "5",
-        MAX_FAILURES: "3"
+        NODE_ENV: "production"
       },
       // Logging configuration
       log_file: "./logs/tornado-monitor.log",

@@ -3,10 +3,10 @@ import { ConfigFile, MonitorConfig } from "./types.js";
 
 export class ConfigLoader {
   private static readonly DEFAULT_CONFIG_PATHS = [
+    process.env.TORNADO_CONFIG_PATH,
     "./config.json",
     "./config/networks.json",
     "./configs/tornado.json",
-    process.env.TORNADO_CONFIG_PATH,
   ].filter(Boolean) as string[];
 
   private static readonly DEFAULT_MONITOR_CONFIG: Partial<MonitorConfig> = {
@@ -92,9 +92,6 @@ export class ConfigLoader {
         // Validate required fields
         this.validateNetworkConfig(merged);
 
-        // Apply environment variable overrides
-        this.applyEnvOverrides(merged);
-
         return merged;
       }),
     };
@@ -131,38 +128,6 @@ export class ConfigLoader {
     }
   }
 
-  private static applyEnvOverrides(config: MonitorConfig): void {
-    // Apply Telegram config from environment variables
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_CHAT_ID;
-
-    if (botToken && chatId) {
-      config.telegram = {
-        botToken,
-        chatId,
-        enabled: process.env.TELEGRAM_ENABLED !== "false",
-        ...config.telegram, // Preserve any existing config
-      };
-    }
-
-    // Apply other environment overrides
-    if (process.env.MONITOR_INTERVAL) {
-      config.interval = parseInt(process.env.MONITOR_INTERVAL, 10) * 1000;
-    }
-
-    if (process.env.MONITOR_TIMEOUT) {
-      config.timeout = parseInt(process.env.MONITOR_TIMEOUT, 10) * 1000;
-    }
-
-    if (process.env.MAX_QUEUE) {
-      config.maxQueue = parseInt(process.env.MAX_QUEUE, 10);
-    }
-
-    if (process.env.MAX_FAILURES) {
-      config.maxConsecutiveFailures = parseInt(process.env.MAX_FAILURES, 10);
-    }
-  }
-
   static createExampleConfig(): ConfigFile {
     return {
       networks: [
@@ -188,11 +153,6 @@ export class ConfigLoader {
         timeout: 10000,
         maxQueue: 3,
         maxConsecutiveFailures: 3,
-        telegram: {
-          botToken: "YOUR_BOT_TOKEN_HERE",
-          chatId: "YOUR_CHAT_ID_HERE",
-          enabled: true,
-        },
       },
       global: {
         logLevel: "info",

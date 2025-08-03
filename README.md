@@ -266,27 +266,17 @@ A network is considered **healthy** when:
 | `telegram.chatId` | string | - | Telegram chat/group ID |
 | `telegram.enabled` | boolean | false | Enable Telegram alerts |
 
-## Environment Variables
+## Configuration File Priority
 
-Override any configuration setting with environment variables:
+The monitor loads configuration in this order:
 
-```bash
-# Telegram Configuration
-export TELEGRAM_BOT_TOKEN="your_bot_token"
-export TELEGRAM_CHAT_ID="your_chat_id" 
-export TELEGRAM_ENABLED="true"
+1. Path specified by `TORNADO_CONFIG_PATH` environment variable (highest priority)
+2. `./config.json`
+3. `./config/networks.json`
+4. `./configs/tornado.json`  
+5. Built-in defaults (fallback)
 
-# Monitor Settings (applied to all networks)
-export MONITOR_INTERVAL="60"          # seconds
-export MONITOR_TIMEOUT="15"           # seconds  
-export MAX_QUEUE="5"                  # queue threshold
-export MAX_FAILURES="2"               # consecutive failures
-
-# Config File Path
-export TORNADO_CONFIG_PATH="/path/to/config.json"
-```
-
-Environment variables have the highest priority and will override config file settings.
+Settings are merged: **defaults** → **file defaults** → **network-specific** settings.
 
 ## Development
 
@@ -373,9 +363,9 @@ cd tornado-monitor
 npm install
 npm run build
 
-# 2. Configure environment
-cp .env.example .env
-# Edit .env with your Telegram bot token and chat ID
+# 2. Configure monitoring
+cp config.example.json config.json
+# Edit config.json with your Telegram bot token and chat ID
 
 # 3. Deploy with PM2
 ./deploy-pm2.sh production
@@ -411,21 +401,13 @@ pm2 monit
 pm2 reload tornado-monitor
 ```
 
-#### Environment Variables
+#### Configuration File
 
-Create a `.env` file or set environment variables:
+All configuration is done through the `config.json` file. Copy and edit the example:
 
 ```bash
-# Required
-export TELEGRAM_BOT_TOKEN="your_bot_token"
-export TELEGRAM_CHAT_ID="your_chat_id"
-
-# Optional
-export TELEGRAM_ENABLED="true"
-export MONITOR_INTERVAL="30"
-export MONITOR_TIMEOUT="10"
-export MAX_QUEUE="3"
-export MAX_FAILURES="3"
+cp config.example.json config.json
+# Edit config.json with your settings
 ```
 
 #### Server Requirements
@@ -470,10 +452,11 @@ export MAX_FAILURES="3"
 3. Review API response structure changes
 4. Check timeout settings for slow responses
 
-**Environment variables not working:**
-1. Restart application after setting env vars
-2. Verify variable names match exactly (case-sensitive)
-3. Check if config file values are overriding env vars
+**Configuration not working:**
+1. Verify config.json syntax is valid JSON
+2. Check file path and permissions
+3. Use absolute paths for custom config locations
+4. Verify all required fields are present
 
 ### Debug Mode
 

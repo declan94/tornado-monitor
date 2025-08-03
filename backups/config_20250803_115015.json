@@ -1,0 +1,36 @@
+{
+  "networks": [
+    {
+      "apiUrl": "https://tornado.bitah.link/v1/status",
+      "name": "Ethereum",
+      "interval": 30000,
+      "timeout": 10000,
+      "maxQueue": 5,
+      "maxConsecutiveFailures": 3
+    },
+    {
+      "apiUrl": "https://bsc-tornado.bitah.link/v1/status",
+      "name": "BSC",
+      "interval": 45000,
+      "timeout": 15000,
+      "maxQueue": 10,
+      "maxConsecutiveFailures": 2
+    }
+  ],
+  "defaults": {
+    "interval": 30000,
+    "timeout": 10000,
+    "maxQueue": 3,
+    "maxConsecutiveFailures": 3,
+    "telegram": {
+      "botToken": "7917656749:AAF30nyomZf8P-IMMOrc6s4qbcEDdq7PGUA",
+      "chatId": "1844665706",
+      "enabled": true
+    }
+  },
+  "global": {
+    "logLevel": "info",
+    "enableHealthSummary": true,
+    "healthSummaryInterval": 300000
+  }
+}
