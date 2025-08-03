@@ -173,6 +173,7 @@ coverage/
 .nyc_output/
 
 # Backup files
+backups/*
 *.bak
 *.backup
 *~
