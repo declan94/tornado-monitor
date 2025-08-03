@@ -213,6 +213,25 @@ The monitor sends different alerts with appropriate emojis:
 
 **Burst Throttling:** Allows up to 3 alerts immediately for rapid issue detection, then applies 5-minute throttling between subsequent alerts. Burst counter resets after 15 minutes of no alerts.
 
+### Testing Telegram Alerts
+
+Test your Telegram configuration before deploying:
+
+```bash
+# Build the project first
+npm run build
+
+# Test alerts with your config
+npm run test:alert
+```
+
+The test will:
+- Load your configuration (file or environment variables)
+- Test connection to Telegram
+- Send sample alerts of different types
+- Demonstrate burst throttling behavior
+- Show helpful error messages if misconfigured
+
 ## API Validation
 
 The monitor validates several key fields:
@@ -298,6 +317,9 @@ npm run build            # Compile TypeScript to dist/
 npm start                # Run with auto-discovered config
 npm start config.json    # Run with specific config file  
 npm run start:config     # Run with config.json
+
+# Testing
+npm run test:alert       # Test Telegram alerts with config
 
 # Code Quality
 npm run format           # Auto-format code with Prettier

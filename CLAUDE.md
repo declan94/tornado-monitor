@@ -14,7 +14,9 @@ This is a new tornado monitoring project directory. The codebase is currently em
 - `npm run dev` - Development server
 
 ## Principles
-- Remember to run `npm run format` to format the code after any modification to code.
+- Use `npm run format` to format the code after any modification to code.
+- Use `npm run lint` to check for code style issues.
+- Update README.md when new features are added or existing features are modified.
 
 ## Architecture Notes
 
