@@ -1,16 +1,24 @@
 # Tornado Monitor
 
-A TypeScript-based health monitoring service for Tornado Cash Relayers' API endpoints. Monitors multiple networks (Ethereum, BSC) and sends alerts via Telegram when issues are detected.
+A comprehensive TypeScript-based monitoring service for Tornado Cash infrastructure. Monitors API endpoint health across multiple networks and tracks StakeBurned events on the blockchain.
 
 ## Features
 
-- 🌐 **Multi-network monitoring** - Supports Ethereum and BSC Tornado APIs
+### Health Monitoring
+- 🌐 **Multi-network monitoring** - Supports Ethereum, BSC, Polygon and custom Tornado APIs
 - ⚡ **Real-time health checks** - Configurable intervals with timeout handling
 - 🤖 **Telegram alerts** - Rich formatted notifications with emoji indicators
 - 🛡️ **Smart validation** - Validates API structure, health status, and queue levels
 - 🚫 **Alert throttling** - Prevents spam with configurable cooldown periods
 - 📊 **Detailed logging** - Comprehensive status reporting with response times
-- ⚙️ **Flexible configuration** - Per-network customization of all parameters
+
+### StakeBurned Event Monitoring
+- 🔥 **Real-time blockchain monitoring** - Listen for StakeBurned events
+- 🗄️ **Database storage** - Persistent MySQL storage for events
+- 📈 **Historical sync** - Fetch and store past events automatically
+- 🎯 **Relayer filtering** - Monitor specific relayers or all relayers
+- 🔍 **Duplicate prevention** - Automatic handling of duplicate events
+- 📊 **Database queries** - View stored events through database queries
 
 ## Quick Start
 
@@ -18,6 +26,7 @@ A TypeScript-based health monitoring service for Tornado Cash Relayers' API endp
 
 - Node.js 18+ 
 - npm
+- MySQL database (for StakeBurned monitoring)
 - Telegram bot token (optional, for alerts)
 
 ### Installation
@@ -50,7 +59,101 @@ npm run format
 npm run lint
 ```
 
+
 ## Configuration
+
+### New Configuration Structure
+
+The monitor now supports both services in a single configuration file with clear separation:
+
+```json
+{
+  "global": {
+    "logLevel": "info"
+  },
+  "healthMonitoring": {
+    "enabled": true,
+    "networks": [...],
+    "defaults": {...},
+    "enableHealthSummary": true,
+    "healthSummaryInterval": 300000
+  },
+  "stakeBurnedListener": {
+    "rpcUrl": "...",
+    "contractAddress": "...",
+    "relayerAddresses": [...],
+    "historicalBlocks": 1000,
+    "database": {...}
+  }
+}
+```
+
+### Service Configuration
+
+#### Health Monitoring Service
+
+```json
+{
+  "healthMonitoring": {
+    "enabled": true,
+    "networks": [
+      {
+        "apiUrl": "https://tornado.bitah.link/v1/status",
+        "name": "Ethereum",
+        "interval": 30000,
+        "timeout": 10000,
+        "maxQueue": 5,
+        "maxConsecutiveFailures": 3,
+        "telegram": {
+          "botToken": "YOUR_BOT_TOKEN",
+          "chatId": "YOUR_CHAT_ID",
+          "enabled": true
+        }
+      }
+    ],
+    "defaults": {
+      "interval": 30000,
+      "timeout": 10000,
+      "maxQueue": 3,
+      "maxConsecutiveFailures": 3
+    },
+    "enableHealthSummary": true,
+    "healthSummaryInterval": 300000
+  }
+}
+```
+
+#### StakeBurned Event Monitoring
+
+```json
+{
+  "stakeBurnedListener": {
+    "rpcUrl": "https://mainnet.infura.io/v3/YOUR_PROJECT_ID",
+    "contractAddress": "0x5Ef8B60fE7cF3eE5F3F12c20E27FFfCdcE14C0D5",
+    "relayerAddresses": [
+      "0x742d35Cc619C4b8fE28262b67F0b16f2f2C1E2b6",
+      "0x03893a7c7463AE47D46bc7f091665f1893656003"
+    ],
+    "historicalBlocks": 1000,
+    "database": {
+      "host": "localhost",
+      "port": 3306,
+      "user": "tornado_monitor",
+      "password": "YOUR_DB_PASSWORD",
+      "database": "tornado_events"
+    }
+  }
+}
+```
+
+### Service Control
+
+Both services can be enabled independently:
+
+- **Health Monitoring Only**: Include only `healthMonitoring` section
+- **StakeBurned Monitoring Only**: Include only `stakeBurnedListener` section  
+- **Both Services**: Include both sections in the same config file
+- **Disable Service**: Set `enabled: false` for health monitoring, or omit the section entirely
 
 ### Configuration Files
 
@@ -61,85 +164,84 @@ The monitor uses JSON configuration files for easy customization. It automatical
 3. `./configs/tornado.json`
 4. Path specified by `TORNADO_CONFIG_PATH` environment variable
 
-If no config file is found, it uses built-in defaults for Ethereum and BSC networks.
+If no config file is found, it uses built-in defaults for health monitoring only.
 
 ### Quick Setup
 
 Create a basic config file:
 
 ```bash
-# Copy the simple example
-cp config.simple.json config.json
-
-# Or copy the full featured example  
+# Copy the example configuration
 cp config.example.json config.json
 
 # Edit with your settings
 nano config.json
 ```
 
-### Configuration Structure
+## Database Setup (for StakeBurned Monitoring)
 
-```json
-{
-  "networks": [
-    {
-      "apiUrl": "https://tornado.bitah.link/v1/status",
-      "name": "Ethereum",
-      "interval": 30000,
-      "timeout": 10000,
-      "maxQueue": 5,
-      "maxConsecutiveFailures": 3
-    }
-  ],
-  "defaults": {
-    "interval": 30000,
-    "timeout": 10000,
-    "maxQueue": 3,
-    "maxConsecutiveFailures": 3,
-    "telegram": {
-      "botToken": "YOUR_BOT_TOKEN",
-      "chatId": "YOUR_CHAT_ID",
-      "enabled": true
-    }
-  },
-  "global": {
-    "logLevel": "info",
-    "enableHealthSummary": true,
-    "healthSummaryInterval": 300000
-  }
-}
+### MySQL Setup
+
+```sql
+CREATE DATABASE tornado_events;
+CREATE USER 'tornado_monitor'@'localhost' IDENTIFIED BY 'your_secure_password';
+GRANT ALL PRIVILEGES ON tornado_events.* TO 'tornado_monitor'@'localhost';
+FLUSH PRIVILEGES;
 ```
 
-### Config Merging
+The application will automatically create the required tables on first run.
 
-Settings are merged in this priority order:
-1. **Built-in defaults** (lowest priority)
-2. **File defaults** section
-3. **Network-specific** settings
-4. **Environment variables** (highest priority)
+### Database Schema
 
-### Programmatic Configuration
+The `stake_burned_events` table includes:
+- `id` - Auto-incrementing primary key
+- `relayer` - Relayer address (indexed)
+- `amount_burned` - Amount of TORN burned
+- `block_number` - Block number (indexed)
+- `transaction_hash` - Transaction hash (unique, indexed)
+- `timestamp` - Event timestamp (indexed)
+- `torn_price_eth` - TORN price in ETH at time of event
+- `eth_value` - ETH value of burned TORN (amount_burned * torn_price_eth)
+- `created_at` - Record creation timestamp
 
-You can also configure monitors programmatically:
+### Querying Events
 
-```typescript
-import { TornadoHealthMonitor, ConfigLoader } from "./dist/index.js";
+You can query the stored events directly using SQL:
 
-// Load from custom path
-const config = ConfigLoader.loadConfig("./my-config.json");
+```sql
+-- View recent events with price data
+SELECT * FROM stake_burned_events ORDER BY block_number DESC LIMIT 10;
 
-// Or create a monitor directly
-const monitor = new TornadoHealthMonitor({
-  apiUrl: "https://your-tornado-api.com/v1/status",
-  name: "Custom Network",
-  interval: 60000,
-  timeout: 15000,
-  maxQueue: 5,
-  maxConsecutiveFailures: 2
-});
+-- View events for a specific relayer with ETH values
+SELECT relayer, amount_burned, torn_price_eth, eth_value, timestamp 
+FROM stake_burned_events 
+WHERE relayer = '0x742d35Cc619C4b8fE28262b67F0b16f2f2C1E2b6' 
+ORDER BY block_number DESC LIMIT 20;
 
-await monitor.start();
+-- View events from a specific time period
+SELECT * FROM stake_burned_events 
+WHERE timestamp >= '2024-01-01' AND timestamp < '2024-02-01' 
+ORDER BY timestamp DESC;
+
+-- Aggregate data by relayer with ETH values
+SELECT relayer, 
+       COUNT(*) as event_count, 
+       SUM(amount_burned) as total_burned_torn,
+       SUM(eth_value) as total_eth_value,
+       AVG(torn_price_eth) as avg_torn_price_eth
+FROM stake_burned_events 
+GROUP BY relayer 
+ORDER BY total_eth_value DESC;
+
+-- View price trends over time
+SELECT DATE(timestamp) as date, 
+       AVG(torn_price_eth) as avg_price, 
+       MIN(torn_price_eth) as min_price, 
+       MAX(torn_price_eth) as max_price,
+       SUM(eth_value) as daily_eth_burned
+FROM stake_burned_events 
+GROUP BY DATE(timestamp) 
+ORDER BY date DESC;
 ```
 
 ## Telegram Setup
@@ -174,12 +276,13 @@ export TELEGRAM_ENABLED="true"
 **Option 2: Config File**
 ```json
 {
-  "networks": [...],
-  "defaults": {
-    "telegram": {
-      "botToken": "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
-      "chatId": "-1001234567890",
-      "enabled": true
+  "healthMonitoring": {
+    "defaults": {
+      "telegram": {
+        "botToken": "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
+        "chatId": "-1001234567890",
+        "enabled": true
+      }
     }
   }
 }
@@ -188,51 +291,59 @@ export TELEGRAM_ENABLED="true"
 **Option 3: Per-Network Config**
 ```json
 {
-  "networks": [
-    {
-      "apiUrl": "https://tornado.bitah.link/v1/status",
-      "name": "Ethereum",
-      "telegram": {
-        "botToken": "your_bot_token",
-        "chatId": "your_chat_id",
-        "enabled": true
+  "healthMonitoring": {
+    "networks": [
+      {
+        "apiUrl": "https://tornado.bitah.link/v1/status",
+        "name": "Ethereum",
+        "telegram": {
+          "botToken": "your_bot_token",
+          "chatId": "your_chat_id",
+          "enabled": true
+        }
       }
-    }
-  ]
+    ]
+  }
 }
 ```
 
-### Alert Types & Throttling
+## Configuration Options
 
-The monitor sends different alerts with appropriate emojis:
+### Health Monitoring Options
 
-- 🔴 **API Failures** - Connection errors, HTTP errors
-- 🟡 **Health Issues** - API reports unhealthy status
-- ⚠️ **High Queue** - Transaction queue exceeds threshold
-- 🚨 **General Alerts** - Other monitoring issues
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | boolean | true | Enable health monitoring service |
+| `apiUrl` | string | Required | Tornado API endpoint |
+| `name` | string | "Unknown" | Network name for logging |
+| `interval` | number | 30000 | Check interval (ms) |
+| `timeout` | number | 10000 | Request timeout (ms) |
+| `maxQueue` | number | 3 | Queue threshold for alerts |
+| `maxConsecutiveFailures` | number | 3 | Failures before alerting |
+| `enableHealthSummary` | boolean | true | Enable periodic health summaries |
+| `healthSummaryInterval` | number | 300000 | Health summary interval (ms) |
 
-**Burst Throttling:** Allows up to 3 alerts immediately for rapid issue detection, then applies 5-minute throttling between subsequent alerts. Burst counter resets after 15 minutes of no alerts.
+### StakeBurned Monitoring Options
 
-### Testing Telegram Alerts
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `rpcUrl` | string | Required | Ethereum RPC endpoint |
+| `contractAddress` | string | Required | StakeBurned contract address |
+| `relayerAddresses` | string[] | [] | Specific relayers to monitor (empty = all) |
+| `historicalBlocks` | number | 1000 | How many blocks back to sync initially |
+| `database.host` | string | Required | MySQL host |
+| `database.port` | number | 3306 | MySQL port |
+| `database.user` | string | Required | MySQL username |
+| `database.password` | string | Required | MySQL password |
+| `database.database` | string | Required | MySQL database name |
 
-Test your Telegram configuration before deploying:
+### Global Options
 
-```bash
-# Build the project first
-npm run build
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `logLevel` | string | "info" | Log level (debug, info, warn, error) |
 
-# Test alerts with your config
-npm run test:alert
-```
-
-The test will:
-- Load your configuration (file or environment variables)
-- Test connection to Telegram
-- Send sample alerts of different types
-- Demonstrate burst throttling behavior
-- Show helpful error messages if misconfigured
-
-## API Validation
+## API Validation (Health Monitoring)
 
 The monitor validates several key fields:
 
@@ -252,47 +363,25 @@ A network is considered **healthy** when:
 3. ✅ `health.status === "true"`
 4. ✅ `currentQueue <= maxQueue`
 
-## Configuration Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `apiUrl` | string | Required | Tornado API endpoint |
-| `name` | string | "Unknown" | Network name for logging |
-| `interval` | number | 30000 | Check interval (ms) |
-| `timeout` | number | 10000 | Request timeout (ms) |
-| `maxQueue` | number | 3 | Queue threshold for alerts |
-| `maxConsecutiveFailures` | number | 3 | Failures before alerting |
-| `telegram.botToken` | string | - | Telegram bot token |
-| `telegram.chatId` | string | - | Telegram chat/group ID |
-| `telegram.enabled` | boolean | false | Enable Telegram alerts |
-
-## Configuration File Priority
-
-The monitor loads configuration in this order:
-
-1. Path specified by `TORNADO_CONFIG_PATH` environment variable (highest priority)
-2. `./config.json`
-3. `./config/networks.json`
-4. `./configs/tornado.json`  
-5. Built-in defaults (fallback)
-
-Settings are merged: **defaults** → **file defaults** → **network-specific** settings.
-
 ## Development
 
 ### Project Structure
 
 ```
 src/
-├── index.ts      # Main monitor classes
-├── types.ts      # TypeScript interfaces 
-├── telegram.ts   # Telegram alert sender
+├── index.ts                  # Main service orchestrator
+├── tornadoHealthMonitor.ts   # Health monitoring classes
+├── stakeBurnedListener.ts    # StakeBurned event monitoring
+├── database.ts              # Database operations
+├── types.ts                 # TypeScript interfaces 
+├── telegram.ts              # Telegram alert sender
+├── config.ts                # Configuration loader
 └── ...
 
-dist/             # Compiled JavaScript
-package.json      # Dependencies and scripts
-tsconfig.json     # TypeScript configuration
-.prettierrc       # Code formatting rules
+dist/                        # Compiled JavaScript
+config.example.json          # Example configuration
+package.json                 # Dependencies and scripts
+tsconfig.json               # TypeScript configuration
 ```
 
 ### Available Scripts
@@ -315,38 +404,7 @@ npm run test:alert       # Test Telegram alerts with config
 npm run format           # Auto-format code with Prettier
 npm run lint             # Check code formatting
 
-# Configuration
-npm run config:create    # Generate example config.json
 ```
-
-### Building
-
-```bash
-npm run build
-```
-
-Compiles TypeScript to the `dist/` directory with source maps and declarations.
-
-## Error Handling
-
-The monitor includes comprehensive error handling:
-
-- **Network Errors** - Connection timeouts, DNS failures
-- **HTTP Errors** - 4xx/5xx status codes
-- **JSON Parsing** - Invalid response format
-- **Validation Errors** - Missing or invalid API fields
-- **Telegram Errors** - Alert delivery failures
-
-All errors are logged with timestamps and response times.
-
-## Alert Throttling
-
-To prevent alert spam:
-
-- **Cooldown Period**: 5 minutes between identical alerts
-- **Per-Network**: Separate throttling for each monitored network
-- **Message-Based**: Same alert message won't repeat within cooldown
-- **Configurable**: Adjust cooldown via `setAlertInterval(minutes)`
 
 ## Production Deployment
 
@@ -365,19 +423,14 @@ npm run build
 
 # 2. Configure monitoring
 cp config.example.json config.json
-# Edit config.json with your Telegram bot token and chat ID
+# Edit config.json with your settings
 
-# 3. Deploy with PM2
+# 3. Set up database (if using StakeBurned monitoring)
+# Create MySQL database and user as shown above
+
+# 4. Deploy with PM2
 ./deploy-pm2.sh production
 ```
-
-#### What the deployment script does:
-
-- ✅ Installs PM2 if not present
-- ✅ Validates configuration and tests alerts
-- ✅ Sets up logging and auto-restart
-- ✅ Configures system startup
-- ✅ Provides status monitoring
 
 #### PM2 Management Commands
 
@@ -396,37 +449,21 @@ pm2 stop tornado-monitor
 
 # Monitor dashboard
 pm2 monit
-
-# Reload with zero downtime
-pm2 reload tornado-monitor
 ```
 
-#### Configuration File
+## Error Handling
 
-All configuration is done through the `config.json` file. Copy and edit the example:
+The monitor includes comprehensive error handling:
 
-```bash
-cp config.example.json config.json
-# Edit config.json with your settings
-```
+- **Network Errors** - Connection timeouts, DNS failures
+- **HTTP Errors** - 4xx/5xx status codes
+- **JSON Parsing** - Invalid response format
+- **Validation Errors** - Missing or invalid API fields
+- **Database Errors** - Connection failures, query errors
+- **Blockchain Errors** - RPC failures, contract call errors
+- **Telegram Errors** - Alert delivery failures
 
-#### Server Requirements
-
-- **Node.js 18+**
-- **npm** or **yarn**
-- **PM2** (installed automatically by deploy script)
-- **Git** (for deployment)
-
-#### Deployment Features
-
-- **Auto-restart** on failures or crashes
-- **Memory monitoring** with automatic restart at 1GB
-- **Log rotation** with timestamped entries
-- **Health checks** and monitoring
-- **Graceful shutdown** handling
-- **System startup** integration
-- **Daily restart** scheduling (3 AM)
-- **Configuration backup** before deployment
+All errors are logged with timestamps and response times.
 
 ## Troubleshooting
 
@@ -438,29 +475,25 @@ cp config.example.json config.json
 3. Check console for config loading messages
 4. Use `TORNADO_CONFIG_PATH` env var for custom paths
 
+**Database connection failing:**
+1. Verify MySQL is running and accessible
+2. Check database credentials and permissions
+3. Ensure the database exists or can be created
+4. Test connection with mysql client
+
 **Telegram alerts not working:**
 1. Run `npm run test:alert` to diagnose issues
 2. Verify bot token and chat ID are correct
 3. Check environment variables vs config file priority
 4. Ensure bot has permission to send messages  
-5. Look for "Telegram connection: ✅ OK" on startup
-6. Send a message to your bot first to initialize the chat
+5. Send a message to your bot first to initialize the chat
 
-**API validation failing:**
-1. Check API endpoints are accessible
-2. Verify network connectivity and DNS
-3. Review API response structure changes
-4. Check timeout settings for slow responses
-
-**Configuration not working:**
-1. Verify config.json syntax is valid JSON
-2. Check file path and permissions
-3. Use absolute paths for custom config locations
-4. Verify all required fields are present
-
-### Debug Mode
-
-Enable verbose logging by modifying the console.log statements or adding a debug flag.
+**StakeBurned events not appearing:**
+1. Check RPC endpoint is responding
+2. Verify contract address is correct
+3. Ensure relayer addresses are properly formatted (if filtering)
+4. Check database permissions and connection
+5. Review historical block range settings
 
 ## License
 

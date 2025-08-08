@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from "fs";
-import { ConfigFile, MonitorConfig } from "./types.js";
+import { ConfigFile, MonitorConfig, HealthMonitoringConfig } from "./types.js";
 
 export class ConfigLoader {
   private static readonly DEFAULT_CONFIG_PATHS = [
@@ -48,21 +48,24 @@ export class ConfigLoader {
 
   private static getDefaultConfig(): ConfigFile {
     return {
-      networks: [
-        {
-          apiUrl: "https://tornado.bitah.link/v1/status",
-          name: "Ethereum",
-          ...this.DEFAULT_MONITOR_CONFIG,
-        } as MonitorConfig,
-        {
-          apiUrl: "https://bsc-tornado.bitah.link/v1/status",
-          name: "BSC",
-          ...this.DEFAULT_MONITOR_CONFIG,
-        } as MonitorConfig,
-      ],
-      defaults: this.DEFAULT_MONITOR_CONFIG,
       global: {
         logLevel: "info",
+      },
+      healthMonitoring: {
+        enabled: true,
+        networks: [
+          {
+            apiUrl: "https://tornado.bitah.link/v1/status",
+            name: "Ethereum",
+            ...this.DEFAULT_MONITOR_CONFIG,
+          } as MonitorConfig,
+          {
+            apiUrl: "https://bsc-tornado.bitah.link/v1/status",
+            name: "BSC",
+            ...this.DEFAULT_MONITOR_CONFIG,
+          } as MonitorConfig,
+        ],
+        defaults: this.DEFAULT_MONITOR_CONFIG,
         enableHealthSummary: true,
         healthSummaryInterval: 300000, // 5 minutes
       },
@@ -70,22 +73,21 @@ export class ConfigLoader {
   }
 
   private static validateAndMergeConfig(config: ConfigFile): ConfigFile {
-    // Validate required fields
-    if (!config.networks || !Array.isArray(config.networks)) {
-      throw new Error("Config must have 'networks' array");
-    }
+    // Validate health monitoring config if present
+    if (config.healthMonitoring) {
+      if (!config.healthMonitoring.networks || !Array.isArray(config.healthMonitoring.networks)) {
+        throw new Error("healthMonitoring must have 'networks' array");
+      }
 
-    if (config.networks.length === 0) {
-      throw new Error("At least one network must be configured");
-    }
+      if (config.healthMonitoring.networks.length === 0) {
+        throw new Error("At least one network must be configured in healthMonitoring");
+      }
 
-    // Merge defaults with each network
-    const mergedConfig: ConfigFile = {
-      ...config,
-      networks: config.networks.map((network) => {
+      // Merge defaults with each network
+      config.healthMonitoring.networks = config.healthMonitoring.networks.map((network) => {
         const merged = {
           ...this.DEFAULT_MONITOR_CONFIG,
-          ...config.defaults,
+          ...config.healthMonitoring?.defaults,
           ...network,
         } as MonitorConfig;
 
@@ -93,11 +95,12 @@ export class ConfigLoader {
         this.validateNetworkConfig(merged);
 
         return merged;
-      }),
-    };
+      });
 
-    console.log(`Loaded ${mergedConfig.networks.length} network configurations`);
-    return mergedConfig;
+      console.log(`Loaded ${config.healthMonitoring.networks.length} network configurations`);
+    }
+
+    return config;
   }
 
   private static validateNetworkConfig(config: MonitorConfig): void {
@@ -130,34 +133,50 @@ export class ConfigLoader {
 
   static createExampleConfig(): ConfigFile {
     return {
-      networks: [
-        {
-          apiUrl: "https://tornado.bitah.link/v1/status",
-          name: "Ethereum",
-          interval: 30000,
-          timeout: 10000,
-          maxQueue: 5,
-          maxConsecutiveFailures: 3,
-        },
-        {
-          apiUrl: "https://bsc-tornado.bitah.link/v1/status",
-          name: "BSC",
-          interval: 45000,
-          timeout: 15000,
-          maxQueue: 10,
-          maxConsecutiveFailures: 2,
-        },
-      ],
-      defaults: {
-        interval: 30000,
-        timeout: 10000,
-        maxQueue: 3,
-        maxConsecutiveFailures: 3,
-      },
       global: {
         logLevel: "info",
+      },
+      healthMonitoring: {
+        enabled: true,
+        networks: [
+          {
+            apiUrl: "https://tornado.bitah.link/v1/status",
+            name: "Ethereum",
+            interval: 30000,
+            timeout: 10000,
+            maxQueue: 5,
+            maxConsecutiveFailures: 3,
+          },
+          {
+            apiUrl: "https://bsc-tornado.bitah.link/v1/status",
+            name: "BSC",
+            interval: 45000,
+            timeout: 15000,
+            maxQueue: 10,
+            maxConsecutiveFailures: 2,
+          },
+        ],
+        defaults: {
+          interval: 30000,
+          timeout: 10000,
+          maxQueue: 3,
+          maxConsecutiveFailures: 3,
+        },
         enableHealthSummary: true,
         healthSummaryInterval: 300000,
+      },
+      stakeBurnedListener: {
+        rpcUrl: "https://mainnet.infura.io/v3/YOUR_PROJECT_ID",
+        contractAddress: "0x5Ef8B60fE7cF3eE5F3F12c20E27FFfCdcE14C0D5",
+        relayerAddresses: ["0x742d35Cc619C4b8fE28262b67F0b16f2f2C1E2b6"],
+        historicalBlocks: 1000,
+        database: {
+          host: "localhost",
+          port: 3306,
+          user: "tornado_monitor",
+          password: "your_password",
+          database: "tornado_events",
+        },
       },
     };
   }

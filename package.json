@@ -17,15 +17,22 @@
     "config:create": "node -e \"console.log(JSON.stringify(require('./dist/config.js').ConfigLoader.createExampleConfig(), null, 2))\" > config.json"
   },
   "dependencies": {
+    "ethers": "^6.15.0",
+    "mysql2": "^3.14.3",
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "prettier": "^3.0.0",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0",
-    "prettier": "^3.0.0"
+    "typescript": "^5.0.0"
   },
-  "keywords": ["tornado", "monitoring", "health-check", "api"],
+  "keywords": [
+    "tornado",
+    "monitoring",
+    "health-check",
+    "api"
+  ],
   "author": "",
   "license": "MIT"
 }

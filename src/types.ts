@@ -10,12 +10,15 @@ export interface TornadoApiResponse {
     errorsLog?: any[];
   };
   currentQueue: number;
-  instances: Record<string, {
-    instanceAddress: Record<string, string>;
-    symbol: string;
-    decimals: number;
-    tokenAddress?: string;
-  }>;
+  instances: Record<
+    string,
+    {
+      instanceAddress: Record<string, string>;
+      symbol: string;
+      decimals: number;
+      tokenAddress?: string;
+    }
+  >;
   ethPrices?: Record<string, string>;
   errorLog?: Array<{
     error: string;
@@ -47,12 +50,46 @@ export interface MonitorConfig {
   telegram?: TelegramConfig;
 }
 
-export interface ConfigFile {
+export interface DatabaseConfig {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+}
+
+export interface StakeBurnedConfig {
+  rpcUrl: string;
+  contractAddress: string;
+  relayerAddresses: string[];
+  historicalBlocks: number;
+  database: DatabaseConfig;
+}
+
+export interface HealthMonitoringConfig {
+  enabled?: boolean;
   networks: MonitorConfig[];
   defaults?: Partial<MonitorConfig>;
+  enableHealthSummary?: boolean;
+  healthSummaryInterval?: number;
+}
+
+export interface ConfigFile {
   global?: {
     logLevel?: "debug" | "info" | "warn" | "error";
-    enableHealthSummary?: boolean;
-    healthSummaryInterval?: number;
   };
+  healthMonitoring?: HealthMonitoringConfig;
+  stakeBurnedListener?: StakeBurnedConfig;
+}
+
+export interface StakeBurnedEvent {
+  id?: number;
+  relayer: string;
+  amountBurned: string;
+  blockNumber: number;
+  transactionHash: string;
+  timestamp: Date;
+  tornPriceEth: string;
+  ethValue: string;
+  createdAt?: Date;
 }

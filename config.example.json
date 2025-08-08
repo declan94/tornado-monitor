@@ -1,36 +1,68 @@
 {
-  "networks": [
-    {
-      "apiUrl": "https://tornado.bitah.link/v1/status",
-      "name": "Ethereum",
+  "global": {
+    "logLevel": "info"
+  },
+  "healthMonitoring": {
+    "enabled": true,
+    "networks": [
+      {
+        "apiUrl": "https://tornado.bitah.link/v1/status",
+        "name": "Ethereum",
+        "interval": 30000,
+        "timeout": 10000,
+        "maxQueue": 5,
+        "maxConsecutiveFailures": 3,
+        "telegram": {
+          "botToken": "YOUR_BOT_TOKEN",
+          "chatId": "YOUR_CHAT_ID",
+          "enabled": true
+        }
+      },
+      {
+        "apiUrl": "https://bsc-tornado.bitah.link/v1/status", 
+        "name": "BSC",
+        "interval": 45000,
+        "timeout": 15000,
+        "maxQueue": 10,
+        "maxConsecutiveFailures": 2,
+        "telegram": {
+          "botToken": "YOUR_BOT_TOKEN",
+          "chatId": "YOUR_CHAT_ID", 
+          "enabled": true
+        }
+      },
+      {
+        "apiUrl": "https://polygon-tornado.bitah.link/v1/status",
+        "name": "Polygon", 
+        "interval": 60000,
+        "timeout": 12000,
+        "maxQueue": 8,
+        "maxConsecutiveFailures": 3
+      }
+    ],
+    "defaults": {
       "interval": 30000,
       "timeout": 10000,
-      "maxQueue": 5,
+      "maxQueue": 3,
       "maxConsecutiveFailures": 3
     },
-    {
-      "apiUrl": "https://bsc-tornado.bitah.link/v1/status",
-      "name": "BSC",
-      "interval": 45000,
-      "timeout": 15000,
-      "maxQueue": 10,
-      "maxConsecutiveFailures": 2
-    }
-  ],
-  "defaults": {
-    "interval": 30000,
-    "timeout": 10000,
-    "maxQueue": 3,
-    "maxConsecutiveFailures": 3,
-    "telegram": {
-      "botToken": "BOT_TOKEN",
-      "chatId": "CHAT_ID",
-      "enabled": true
-    }
-  },
-  "global": {
-    "logLevel": "info",
     "enableHealthSummary": true,
     "healthSummaryInterval": 300000
+  },
+  "stakeBurnedListener": {
+    "rpcUrl": "https://mainnet.infura.io/v3/YOUR_PROJECT_ID",
+    "contractAddress": "0x5Ef8B60fE7cF3eE5F3F12c20E27FFfCdcE14C0D5",
+    "relayerAddresses": [
+      "0x742d35Cc619C4b8fE28262b67F0b16f2f2C1E2b6",
+      "0x03893a7c7463AE47D46bc7f091665f1893656003"
+    ],
+    "historicalBlocks": 10,
+    "database": {
+      "host": "localhost",
+      "port": 3306,
+      "user": "tornado_monitor",
+      "password": "YOUR_DB_PASSWORD",
+      "database": "tornado_events"
+    }
   }
 }
