@@ -128,6 +128,7 @@ The monitor now supports both services in a single configuration file with clear
 ```json
 {
   "stakeBurnedListener": {
+    "enabled": true,
     "rpcUrl": "https://mainnet.infura.io/v3/YOUR_PROJECT_ID",
     "contractAddress": "0x5Ef8B60fE7cF3eE5F3F12c20E27FFfCdcE14C0D5",
     "relayerAddresses": [
@@ -153,7 +154,8 @@ Both services can be enabled independently:
 - **Health Monitoring Only**: Include only `healthMonitoring` section
 - **StakeBurned Monitoring Only**: Include only `stakeBurnedListener` section  
 - **Both Services**: Include both sections in the same config file
-- **Disable Service**: Set `enabled: false` for health monitoring, or omit the section entirely
+- **Disable Health Monitoring**: Set `enabled: false` in `healthMonitoring`, or omit the section entirely
+- **Disable StakeBurned Monitoring**: Set `enabled: false` in `stakeBurnedListener`, or omit the section entirely
 
 ### Configuration Files
 
@@ -327,6 +329,7 @@ export TELEGRAM_ENABLED="true"
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `enabled` | boolean | true | Enable StakeBurned monitoring service |
 | `rpcUrl` | string | Required | Ethereum RPC endpoint |
 | `contractAddress` | string | Required | StakeBurned contract address |
 | `relayerAddresses` | string[] | [] | Specific relayers to monitor (empty = all) |

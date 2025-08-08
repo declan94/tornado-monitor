@@ -166,6 +166,7 @@ export class ConfigLoader {
         healthSummaryInterval: 300000,
       },
       stakeBurnedListener: {
+        enabled: true,
         rpcUrl: "https://mainnet.infura.io/v3/YOUR_PROJECT_ID",
         contractAddress: "0x5Ef8B60fE7cF3eE5F3F12c20E27FFfCdcE14C0D5",
         relayerAddresses: ["0x742d35Cc619C4b8fE28262b67F0b16f2f2C1E2b6"],

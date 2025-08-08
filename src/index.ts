@@ -22,8 +22,8 @@ class TornadoMonitorService {
       await this.multiNetworkMonitor.start();
     }
 
-    // Start stake burned listener if configured
-    if (this.config.stakeBurnedListener) {
+    // Start stake burned listener if configured and enabled
+    if (this.config.stakeBurnedListener && this.config.stakeBurnedListener.enabled !== false) {
       console.log("🔥 Initializing StakeBurned event listener...");
       this.stakeBurnedListener = new StakeBurnedListener(this.config.stakeBurnedListener);
       await this.stakeBurnedListener.initialize();

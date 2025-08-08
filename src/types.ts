@@ -59,6 +59,7 @@ export interface DatabaseConfig {
 }
 
 export interface StakeBurnedConfig {
+  enabled?: boolean;
   rpcUrl: string;
   contractAddress: string;
   relayerAddresses: string[];
