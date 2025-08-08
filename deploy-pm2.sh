@@ -147,12 +147,30 @@ validate_config() {
         return 1
     fi
     
-    # Test Telegram connection only
+    # Test Telegram connection only if health monitoring is enabled
     log_info "Testing Telegram connection..."
     if node -e "
         import('./dist/config.js').then(({ ConfigLoader }) => {
             const config = ConfigLoader.loadConfig();
-            const networkWithTelegram = config.networks.find(n => n.telegram && n.telegram.enabled);
+            
+            // Only check telegram if health monitoring is enabled
+            if (!config.healthMonitoring || config.healthMonitoring.enabled === false) {
+                console.log('Health monitoring disabled, skipping Telegram test');
+                process.exit(0);
+            }
+            
+            let networkWithTelegram = null;
+            
+            // Check health monitoring networks for telegram config
+            if (config.healthMonitoring.networks) {
+                networkWithTelegram = config.healthMonitoring.networks.find(n => n.telegram && n.telegram.enabled);
+            }
+            
+            // Check health monitoring defaults for telegram config
+            if (!networkWithTelegram && config.healthMonitoring.defaults && config.healthMonitoring.defaults.telegram && config.healthMonitoring.defaults.telegram.enabled) {
+                networkWithTelegram = { telegram: config.healthMonitoring.defaults.telegram };
+            }
+            
             if (!networkWithTelegram) {
                 console.log('No Telegram configuration found');
                 process.exit(1);
