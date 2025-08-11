@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, existsSync, watchFile } from "fs";
 import { ConfigFile, MonitorConfig, HealthMonitoringConfig } from "../types.js";
 
 export class ConfigLoader {
@@ -8,6 +8,9 @@ export class ConfigLoader {
     "./config/networks.json",
     "./configs/tornado.json",
   ].filter(Boolean) as string[];
+
+  private static currentConfigPath: string | null = null;
+  private static watcherCallbacks: Array<(config: ConfigFile) => void> = [];
 
   private static readonly DEFAULT_MONITOR_CONFIG: Partial<MonitorConfig> = {
     interval: 30, // 30 seconds
@@ -21,8 +24,11 @@ export class ConfigLoader {
 
     if (!path) {
       console.log("No config file found, using default configuration");
+      this.currentConfigPath = null;
       return this.getDefaultConfig();
     }
+
+    this.currentConfigPath = path;
 
     try {
       console.log(`Loading configuration from: ${path}`);
@@ -189,5 +195,68 @@ export class ConfigLoader {
         },
       },
     };
+  }
+
+  static watchConfig(callback: (config: ConfigFile) => void): void {
+    if (!this.currentConfigPath) {
+      console.warn("No config file to watch - using default configuration");
+      return;
+    }
+
+    this.watcherCallbacks.push(callback);
+
+    // Only start watching if this is the first callback
+    if (this.watcherCallbacks.length === 1) {
+      console.log(`🔍 Watching config file for changes: ${this.currentConfigPath}`);
+      
+      let reloadTimeout: NodeJS.Timeout | null = null;
+      
+      watchFile(this.currentConfigPath, { interval: 1000 }, (curr, prev) => {
+        if (curr.mtime > prev.mtime) {
+          // Debounce rapid changes
+          if (reloadTimeout) {
+            clearTimeout(reloadTimeout);
+          }
+          
+          reloadTimeout = setTimeout(() => {
+            console.log("📝 Config file changed, reloading...");
+            this.reloadConfig();
+          }, 500);
+        }
+      });
+    }
+  }
+
+  private static reloadConfig(): void {
+    if (!this.currentConfigPath) {
+      return;
+    }
+
+    try {
+      const content = readFileSync(this.currentConfigPath, "utf-8");
+      const config = JSON.parse(content) as ConfigFile;
+      const validatedConfig = this.validateAndMergeConfig(config);
+      
+      console.log("✅ Configuration reloaded successfully");
+      
+      // Notify all watchers
+      this.watcherCallbacks.forEach(callback => {
+        try {
+          callback(validatedConfig);
+        } catch (error) {
+          console.error("Error in config watcher callback:", error);
+        }
+      });
+    } catch (error) {
+      console.error("❌ Failed to reload configuration:", error);
+    }
+  }
+
+  static stopWatching(): void {
+    if (this.currentConfigPath) {
+      // Note: Node.js doesn't provide unwatchFile, so we clear callbacks instead
+      this.watcherCallbacks = [];
+      console.log("🛑 Stopped watching config file");
+    }
   }
 }

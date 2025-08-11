@@ -38,7 +38,6 @@ export class HealthAlertService {
     const alertKey = `${alert.networkName}:${alert.message}`;
     const now = Date.now();
     const lastAlert = this.lastAlertTime.get(alertKey);
-    const alertCount = this.alertCounts.get(alertKey) || 0;
 
     // Reset count if burst window has passed
     if (lastAlert && now - lastAlert > this.BURST_WINDOW) {
@@ -72,25 +71,25 @@ export class HealthAlertService {
     const emoji = this.getAlertEmoji(alert);
     const countIndicator = alertCount > 1 ? ` (${alertCount}/${this.BURST_LIMIT})` : "";
 
-    let message = `${emoji} *Tornado Monitor Alert*${countIndicator}\n\n`;
-    message += `🌐 *Network:* ${alert.networkName}\n`;
-    message += `⏰ *Time:* ${alert.timestamp.toISOString()}\n`;
-    message += `📋 *Issue:* ${alert.message}\n`;
+    let message = `${emoji} *Tornado Monitor Alert*${countIndicator}\n`;
+    message += `*Time:* ${alert.timestamp.toISOString()}\n`;
+    message += `*Network:* ${alert.networkName}\n`;
+    message += `*Issue:* ${alert.message}\n`;
 
     // Add additional context based on alert type
     if (alert.consecutiveFailures && alert.consecutiveFailures > 1) {
-      message += `🔄 *Consecutive Failures:* ${alert.consecutiveFailures}\n`;
+      message += `*Consecutive Failures:* ${alert.consecutiveFailures}\n`;
     }
 
     if (alert.queueSize !== undefined) {
-      message += `📊 *Queue Size:* ${alert.queueSize}\n`;
+      message += `*Queue Size:* ${alert.queueSize}\n`;
     }
 
     if (alert.responseTime !== undefined) {
-      message += `⚡ *Response Time:* ${alert.responseTime}ms\n`;
+      message += `*Response Time:* ${alert.responseTime}ms\n`;
     }
 
-    message += `\n#TornadoAlert #${alert.networkName.replace(/\s+/g, "")}`;
+    message += `#HealthAlert #${alert.networkName.replace(/\s+/g, "")}`;
 
     return message;
   }

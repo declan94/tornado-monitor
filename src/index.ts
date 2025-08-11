@@ -12,6 +12,102 @@ class TornadoMonitorService {
 
   constructor(configPath?: string) {
     this.config = ConfigLoader.loadConfig(configPath);
+    
+    // Watch for config changes
+    ConfigLoader.watchConfig((newConfig) => {
+      this.handleConfigReload(newConfig);
+    });
+  }
+
+  private async handleConfigReload(newConfig: ConfigFile): Promise<void> {
+    console.log("🔄 Handling configuration reload...");
+    
+    // Save old config for comparison
+    const oldConfig = this.config;
+    this.config = newConfig;
+
+    // Update TORN price monitor if it exists and new config has price monitoring
+    if (this.tornPriceMonitor && newConfig.tornPriceMonitor) {
+      if (newConfig.tornPriceMonitor.enabled !== false) {
+        this.tornPriceMonitor.updateConfig(newConfig.tornPriceMonitor);
+      } else {
+        console.log("💰 TORN price monitor disabled in new config, stopping...");
+        
+        // Send stop notification before stopping
+        await this.sendServiceStatusNotification('stopped', oldConfig.tornPriceMonitor);
+        
+        this.tornPriceMonitor.stop();
+        this.tornPriceMonitor = undefined;
+      }
+    }
+    // Start price monitor if it doesn't exist but is enabled in new config
+    else if (!this.tornPriceMonitor && newConfig.tornPriceMonitor && newConfig.tornPriceMonitor.enabled !== false) {
+      console.log("💰 Starting TORN price monitor from config reload...");
+      this.tornPriceMonitor = new TornPriceMonitor(newConfig.tornPriceMonitor);
+      await this.tornPriceMonitor.start();
+      
+      // Send start notification
+      await this.sendServiceStatusNotification('started', newConfig.tornPriceMonitor);
+    }
+
+    // Note: For now, we only support dynamic reloading of TORN price monitor
+    // Health monitoring and StakeBurned listener would require more complex reloading logic
+    if (JSON.stringify(newConfig.healthMonitoring) !== JSON.stringify(oldConfig.healthMonitoring)) {
+      console.log("ℹ️  Health monitoring config changed - restart required for full effect");
+    }
+    
+    if (JSON.stringify(newConfig.stakeBurnedListener) !== JSON.stringify(oldConfig.stakeBurnedListener)) {
+      console.log("ℹ️  StakeBurned listener config changed - restart required for full effect");
+    }
+
+    console.log("✅ Configuration reload handled");
+  }
+
+  private async sendServiceStatusNotification(status: 'started' | 'stopped', config?: any): Promise<void> {
+    if (!config?.telegram?.enabled) {
+      return; // Skip if telegram is disabled
+    }
+
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const emoji = status === 'started' ? '✅' : '🛑';
+    const action = status === 'started' ? 'Started' : 'Stopped';
+    
+    let message = `${emoji} **TORN Price Monitor ${action}**\n\n`;
+    
+    if (status === 'started' && config) {
+      message += `📊 Monitoring interval: ${config.interval}s\n`;
+      if (config.priceChangeThreshold) {
+        message += `📈 Price change alert: ${config.priceChangeThreshold}%\n`;
+      }
+      if (config.priceThresholds?.high) {
+        message += `🚨 High price alert: ${config.priceThresholds.high} ETH\n`;
+      }
+      if (config.priceThresholds?.low) {
+        message += `⬇️ Low price alert: ${config.priceThresholds.low} ETH\n`;
+      }
+      message += `\n*Service auto-${status} via config reload*`;
+    } else {
+      message += `*Service ${status} via config reload*`;
+    }
+    
+    message += `\n\n*${timestamp} UTC*`;
+
+    try {
+      // Import and create a temporary alert service to send the notification
+      const { PriceAlertService } = await import('./services/price/priceAlertService.js');
+      const alertService = new PriceAlertService(config.telegram);
+      
+      const alert = {
+        type: "service_status" as const,
+        customMessage: message,
+        timestamp: new Date()
+      };
+      
+      await alertService.sendAlert(alert);
+      console.log(`📱 Service ${status} notification sent to Telegram`);
+    } catch (error) {
+      console.error(`❌ Failed to send service ${status} notification:`, error);
+    }
   }
 
   async start(): Promise<void> {
@@ -47,6 +143,9 @@ class TornadoMonitorService {
 
   async stop(): Promise<void> {
     console.log("🛑 Stopping Tornado Monitor Service...");
+
+    // Stop config watching
+    ConfigLoader.stopWatching();
 
     if (this.multiNetworkMonitor) {
       console.log("Stopping health monitoring service...");

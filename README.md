@@ -27,6 +27,7 @@ A comprehensive TypeScript-based monitoring service for Tornado Cash infrastruct
 - 🚨 **Price threshold alerts** - Alerts for high/low price levels
 - 🤖 **Telegram notifications** - Rich formatted price alerts
 - 📈 **Historical price data** - Stores price data with StakeBurned events
+- 🔄 **Dynamic config reloading** - Update thresholds without restart
 
 ## Quick Start
 
@@ -207,6 +208,88 @@ The monitor uses JSON configuration files for easy customization. It automatical
 4. Path specified by `TORNADO_CONFIG_PATH` environment variable
 
 If no config file is found, it uses built-in defaults for health monitoring only.
+
+### Dynamic Configuration Reloading
+
+The monitor automatically watches the configuration file for changes and reloads settings without requiring a restart:
+
+- **🔄 Auto-reload**: Configuration file is monitored for changes every 1 second
+- **⚡ Live updates**: TORN price monitoring settings update immediately
+- **🛡️ Error handling**: Invalid configurations are rejected, keeping current settings
+- **📊 Debouncing**: Rapid file changes are debounced to prevent excessive reloads
+
+**Supported Dynamic Updates:**
+- ✅ TORN price monitoring thresholds and intervals
+- ✅ Telegram configuration for price alerts
+- ✅ Enable/disable price monitoring service
+- ℹ️ Health monitoring changes require restart
+- ℹ️ StakeBurned listener changes require restart
+
+**Usage:**
+Simply edit your config file while the service is running. You'll see reload messages in the logs:
+```
+📝 Config file changed, reloading...
+🔄 Updating TORN price monitor configuration...
+📊 Price check interval updated: 300s → 60s
+✅ Configuration reloaded successfully
+📱 Config update notification sent to Telegram
+```
+
+**Telegram Notifications:**
+When you update the config file, you'll automatically receive Telegram notifications showing exactly what changed:
+
+```
+🔄 *TORN Price Monitor Config Updated*
+*Time:* 2024-01-15 10:30:45 UTC
+*Monitoring interval:* 300s → 60s
+*Price change alert:* 5% → 10%
+*High price alert:* 0.01 ETH → 0.015 ETH
+```
+
+Service start/stop notifications are also sent when enabling/disabling via config:
+```
+✅ *TORN Price Monitor Started*
+*Time:* 2024-01-15T10:30:45.123Z
+*Current Price:* `0.003456 ETH`
+*Monitor Interval:* 60s
+*Price Change Alert:* ±10%
+*High Threshold:* 0.015 ETH
+*Low Threshold:* 0.005 ETH
+```
+
+**Price Alert Notifications:**
+When price thresholds are crossed or significant price changes occur:
+
+```
+📈 *TORN Price Alert*
+*Time:* 2024-01-15T10:30:45.123Z
+*Current Price:* `0.003456 ETH`
+*Previous Price:* `0.003200 ETH`
+*Change:* `+8.00%`
+#PriceChange
+```
+
+```
+🔺 *TORN Price Threshold Alert*
+*Time:* 2024-01-15T10:30:45.123Z
+Price crossed above threshold!
+*Current Price:* `0.004100 ETH`
+*Threshold:* `0.004000 ETH`
+#PriceAlert
+```
+
+**Health Monitoring Alerts:**
+When API endpoints become unhealthy:
+
+```
+🔴 *Tornado Monitor Alert*
+*Time:* 2024-01-15T10:30:45.123Z
+*Network:* Ethereum
+*Issue:* API endpoint is down
+*Consecutive Failures:* 3
+*Response Time:* 5000ms
+#HealthAlert #Ethereum
+```
 
 ### Quick Setup
 

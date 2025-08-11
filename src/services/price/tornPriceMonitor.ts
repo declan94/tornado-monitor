@@ -27,6 +27,31 @@ export class TornPriceMonitor {
     this.alertService = new PriceAlertService(config.telegram);
   }
 
+  updateConfig(newConfig: PriceMonitorConfig): void {
+    console.log("🔄 Updating TORN price monitor configuration...");
+    
+    const wasRunning = this.isRunning;
+    const oldConfig = { ...this.config };
+    
+    // Update config
+    this.config = newConfig;
+    
+    // Update alert service with new telegram config
+    this.alertService = new PriceAlertService(newConfig.telegram);
+    
+    // Build notification message for config changes
+    this.sendConfigUpdateNotification(oldConfig, newConfig);
+    
+    // If interval changed and monitor is running, restart with new interval
+    if (wasRunning && oldConfig.interval !== newConfig.interval) {
+      console.log(`📊 Price check interval updated: ${oldConfig.interval}s → ${newConfig.interval}s`);
+      this.stop();
+      this.start();
+    }
+    
+    console.log("✅ TORN price monitor configuration updated");
+  }
+
   async start(): Promise<void> {
     if (this.isRunning) {
       console.log("🔄 TORN price monitor is already running");
@@ -139,17 +164,68 @@ export class TornPriceMonitor {
     }
   }
 
-  getStatus() {
-    return {
-      isRunning: this.isRunning,
-      lastPrice: this.lastPrice,
-      interval: this.config.interval,
-      priceChangeThreshold: this.config.priceChangeThreshold,
-      priceThresholds: this.config.priceThresholds,
-    };
-  }
-
   getCurrentPrice(): string | null {
     return this.lastPrice;
+  }
+
+  private async sendConfigUpdateNotification(oldConfig: PriceMonitorConfig, newConfig: PriceMonitorConfig): Promise<void> {
+    if (!newConfig.telegram?.enabled) {
+      return; // Skip if telegram is disabled
+    }
+
+    const changes: string[] = [];
+    
+    // Check for interval changes
+    if (oldConfig.interval !== newConfig.interval) {
+      changes.push(`*Monitoring interval:* ${oldConfig.interval}s → ${newConfig.interval}s`);
+    }
+    
+    // Check for price change threshold changes
+    if (oldConfig.priceChangeThreshold !== newConfig.priceChangeThreshold) {
+      changes.push(`*Price change alert:* ${oldConfig.priceChangeThreshold || 'none'}% → ${newConfig.priceChangeThreshold || 'none'}%`);
+    }
+    
+    // Check for high threshold changes
+    if (oldConfig.priceThresholds?.high !== newConfig.priceThresholds?.high) {
+      const oldHigh = oldConfig.priceThresholds?.high ? `${oldConfig.priceThresholds.high} ETH` : 'none';
+      const newHigh = newConfig.priceThresholds?.high ? `${newConfig.priceThresholds.high} ETH` : 'none';
+      changes.push(`*High price alert:* ${oldHigh} → ${newHigh}`);
+    }
+    
+    // Check for low threshold changes
+    if (oldConfig.priceThresholds?.low !== newConfig.priceThresholds?.low) {
+      const oldLow = oldConfig.priceThresholds?.low ? `${oldConfig.priceThresholds.low} ETH` : 'none';
+      const newLow = newConfig.priceThresholds?.low ? `${newConfig.priceThresholds.low} ETH` : 'none';
+      changes.push(`*Low price alert:* ${oldLow} → ${newLow}`);
+    }
+
+    // Only send notification if there are actual changes
+    if (changes.length > 0) {
+      const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+      const message = `🔄 *TORN Price Monitor Config Updated*\n*Time:* ${timestamp} UTC\n${changes.join('\n')}\n`;
+      
+      try {
+        const alert = {
+          type: "config_update" as const,
+          customMessage: message,
+          timestamp: new Date()
+        };
+        await this.alertService.sendAlert(alert);
+        console.log("📱 Config update notification sent to Telegram");
+      } catch (error) {
+        console.error("❌ Failed to send config update notification:", error);
+      }
+    }
+  }
+
+  getStatus(): any {
+    return {
+      running: this.isRunning,
+      interval: this.config.interval,
+      lastPrice: this.lastPrice,
+      priceChangeThreshold: this.config.priceChangeThreshold,
+      priceThresholds: this.config.priceThresholds,
+      telegramEnabled: this.config.telegram?.enabled || false
+    };
   }
 }
