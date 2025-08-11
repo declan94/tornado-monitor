@@ -75,12 +75,24 @@ export interface HealthMonitoringConfig {
   healthSummaryInterval?: number;
 }
 
+export interface PriceMonitorConfig {
+  enabled?: boolean;
+  interval: number; // in seconds
+  priceChangeThreshold?: number;
+  priceThresholds?: {
+    high?: number;
+    low?: number;
+  };
+  telegram?: TelegramConfig;
+}
+
 export interface ConfigFile {
   global?: {
     logLevel?: "debug" | "info" | "warn" | "error";
   };
   healthMonitoring?: HealthMonitoringConfig;
   stakeBurnedListener?: StakeBurnedConfig;
+  tornPriceMonitor?: PriceMonitorConfig;
 }
 
 export interface StakeBurnedEvent {

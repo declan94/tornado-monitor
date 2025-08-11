@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
-import { Database } from "./database.js";
-import { StakeBurnedConfig, StakeBurnedEvent } from "./types.js";
-import { TornPriceService } from "./priceService.js";
+import { Database } from "../../database/database.js";
+import { StakeBurnedConfig, StakeBurnedEvent } from "../../types.js";
+import { TornPriceService } from "../price/priceService.js";
 
 const ABI = [
   {

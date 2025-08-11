@@ -4,8 +4,8 @@ import {
   HealthCheckResult,
   MonitorConfig,
   HealthMonitoringConfig,
-} from "./types.js";
-import { TelegramAlertSender } from "./telegram.js";
+} from "../../types.js";
+import { HealthAlertService } from "./healthAlertService.js";
 
 class TornadoHealthMonitor {
   public config: MonitorConfig;
@@ -13,15 +13,11 @@ class TornadoHealthMonitor {
   private consecutiveFailures: number = 0;
   private lastSuccessfulCheck: string | null = null;
   private intervalId?: NodeJS.Timeout;
-  private telegramSender?: TelegramAlertSender;
+  private healthAlertService: HealthAlertService;
 
   constructor(config: MonitorConfig) {
     this.config = config;
-
-    // Initialize Telegram sender if configured
-    if (this.config.telegram && this.config.telegram.enabled) {
-      this.telegramSender = new TelegramAlertSender(this.config.telegram);
-    }
+    this.healthAlertService = new HealthAlertService(this.config.telegram);
   }
 
   async checkHealth(): Promise<HealthCheckResult> {
@@ -65,7 +61,7 @@ class TornadoHealthMonitor {
           this.onUnhealthy(result, "Error in health: " + data.health.error);
         } else if (data.currentQueue > this.config.maxQueue) {
           result.error = "High queue: " + data.currentQueue;
-          this.onUnhealthy(result, "High queue: " + data.currentQueue);
+          this.onQueueWarning(result, data.currentQueue);
         } else {
           result.isHealthy = true;
           this.onHealthy(result);
@@ -104,8 +100,21 @@ class TornadoHealthMonitor {
   }
 
   private onHealthy(result: HealthCheckResult): void {
+    const wasUnhealthy = this.consecutiveFailures > 0;
     this.consecutiveFailures = 0;
     this.lastSuccessfulCheck = result.timestamp;
+
+    // Send recovery alert if we were previously unhealthy
+    if (wasUnhealthy) {
+      const networkName = this.config.name || "Unknown";
+      this.healthAlertService.sendAlert({
+        type: "recovery",
+        networkName,
+        message: "API has recovered and is now healthy",
+        timestamp: new Date(),
+        responseTime: result.responseTime,
+      });
+    }
 
     const data = result.data!;
     const networkName = this.config.name || "Unknown";
@@ -134,8 +143,26 @@ class TornadoHealthMonitor {
     );
 
     if (this.consecutiveFailures >= this.config.maxConsecutiveFailures) {
-      this.sendAlert(`API has been unhealthy for ${this.consecutiveFailures} consecutive checks`);
+      this.sendConsecutiveFailureAlert();
     }
+  }
+
+  private onQueueWarning(result: HealthCheckResult, queueSize: number): void {
+    this.consecutiveFailures++;
+    const networkName = this.config.name || "Unknown";
+    console.error(
+      `[${result.timestamp}] ⚠️ High queue warning: ${queueSize} (${result.responseTime}ms)`
+    );
+
+    // Send queue warning alert
+    this.healthAlertService.sendAlert({
+      type: "queue_warning",
+      networkName,
+      message: `Queue size is high: ${queueSize} (max: ${this.config.maxQueue})`,
+      timestamp: new Date(),
+      queueSize,
+      responseTime: result.responseTime,
+    });
   }
 
   private onError(result: HealthCheckResult): void {
@@ -145,24 +172,26 @@ class TornadoHealthMonitor {
     );
 
     if (this.consecutiveFailures >= this.config.maxConsecutiveFailures) {
-      this.sendAlert(`API health checks failing: ${result.error}`);
+      this.sendConsecutiveFailureAlert();
     }
   }
 
-  private async sendAlert(message: string): Promise<void> {
+  private async sendConsecutiveFailureAlert(): Promise<void> {
     const networkName = this.config.name || "Unknown";
+    const message = `API has been unhealthy for ${this.consecutiveFailures} consecutive checks`;
+
     console.error(`🚨 ALERT: ${message}`);
     console.error(`  Last successful check: ${this.lastSuccessfulCheck || "Never"}`);
     console.error(`  Consecutive failures: ${this.consecutiveFailures}`);
 
-    // Send Telegram alert if configured
-    if (this.telegramSender) {
-      try {
-        await this.telegramSender.sendAlert(message, networkName);
-      } catch (error) {
-        console.error("Failed to send Telegram alert:", error);
-      }
-    }
+    // Send consecutive failure alert
+    await this.healthAlertService.sendAlert({
+      type: "consecutive_failures",
+      networkName,
+      message,
+      timestamp: new Date(),
+      consecutiveFailures: this.consecutiveFailures,
+    });
   }
 
   async start(): Promise<void> {

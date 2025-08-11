@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from "fs";
-import { ConfigFile, MonitorConfig, HealthMonitoringConfig } from "./types.js";
+import { ConfigFile, MonitorConfig, HealthMonitoringConfig } from "../types.js";
 
 export class ConfigLoader {
   private static readonly DEFAULT_CONFIG_PATHS = [
@@ -10,8 +10,8 @@ export class ConfigLoader {
   ].filter(Boolean) as string[];
 
   private static readonly DEFAULT_MONITOR_CONFIG: Partial<MonitorConfig> = {
-    interval: 30000, // 30 seconds
-    timeout: 10000, // 10 seconds
+    interval: 30, // 30 seconds
+    timeout: 10, // 10 seconds
     maxQueue: 3,
     maxConsecutiveFailures: 3,
   };
@@ -67,7 +67,7 @@ export class ConfigLoader {
         ],
         defaults: this.DEFAULT_MONITOR_CONFIG,
         enableHealthSummary: true,
-        healthSummaryInterval: 300000, // 5 minutes
+        healthSummaryInterval: 300, // 5 minutes in seconds
       },
     };
   }
@@ -94,10 +94,19 @@ export class ConfigLoader {
         // Validate required fields
         this.validateNetworkConfig(merged);
 
+        // Convert seconds to milliseconds for internal use
+        merged.interval = merged.interval * 1000;
+        merged.timeout = merged.timeout * 1000;
+
         return merged;
       });
 
       console.log(`Loaded ${config.healthMonitoring.networks.length} network configurations`);
+      
+      // Convert healthSummaryInterval from seconds to milliseconds
+      if (config.healthMonitoring.healthSummaryInterval) {
+        config.healthMonitoring.healthSummaryInterval = config.healthMonitoring.healthSummaryInterval * 1000;
+      }
     }
 
     return config;
@@ -112,12 +121,12 @@ export class ConfigLoader {
       throw new Error(`Invalid apiUrl: ${config.apiUrl} (must start with http/https)`);
     }
 
-    if (config.interval < 1000) {
-      throw new Error(`Interval too small: ${config.interval}ms (minimum 1000ms)`);
+    if (config.interval < 1) {
+      throw new Error(`Interval too small: ${config.interval}s (minimum 1s)`);
     }
 
-    if (config.timeout < 1000) {
-      throw new Error(`Timeout too small: ${config.timeout}ms (minimum 1000ms)`);
+    if (config.timeout < 1) {
+      throw new Error(`Timeout too small: ${config.timeout}s (minimum 1s)`);
     }
 
     if (config.maxQueue < 0) {
@@ -142,28 +151,28 @@ export class ConfigLoader {
           {
             apiUrl: "https://tornado.bitah.link/v1/status",
             name: "Ethereum",
-            interval: 30000,
-            timeout: 10000,
+            interval: 30,
+            timeout: 10,
             maxQueue: 5,
             maxConsecutiveFailures: 3,
           },
           {
             apiUrl: "https://bsc-tornado.bitah.link/v1/status",
             name: "BSC",
-            interval: 45000,
-            timeout: 15000,
+            interval: 45,
+            timeout: 15,
             maxQueue: 10,
             maxConsecutiveFailures: 2,
           },
         ],
         defaults: {
-          interval: 30000,
-          timeout: 10000,
+          interval: 30,
+          timeout: 10,
           maxQueue: 3,
           maxConsecutiveFailures: 3,
         },
         enableHealthSummary: true,
-        healthSummaryInterval: 300000,
+        healthSummaryInterval: 300,
       },
       stakeBurnedListener: {
         enabled: true,

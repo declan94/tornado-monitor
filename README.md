@@ -18,7 +18,15 @@ A comprehensive TypeScript-based monitoring service for Tornado Cash infrastruct
 - 📈 **Historical sync** - Fetch and store past events automatically
 - 🎯 **Relayer filtering** - Monitor specific relayers or all relayers
 - 🔍 **Duplicate prevention** - Automatic handling of duplicate events
+- 💰 **Price integration** - Automatically fetches TORN price for each event
 - 📊 **Database queries** - View stored events through database queries
+
+### TORN Price Monitoring
+- 💰 **Real-time price tracking** - Monitor TORN token price in ETH
+- 📊 **Price change alerts** - Configurable percentage change thresholds
+- 🚨 **Price threshold alerts** - Alerts for high/low price levels
+- 🤖 **Telegram notifications** - Rich formatted price alerts
+- 📈 **Historical price data** - Stores price data with StakeBurned events
 
 ## Quick Start
 
@@ -64,7 +72,7 @@ npm run lint
 
 ### New Configuration Structure
 
-The monitor now supports both services in a single configuration file with clear separation:
+The monitor now supports three services in a single configuration file with clear separation:
 
 ```json
 {
@@ -79,11 +87,22 @@ The monitor now supports both services in a single configuration file with clear
     "healthSummaryInterval": 300000
   },
   "stakeBurnedListener": {
+    "enabled": true,
     "rpcUrl": "...",
     "contractAddress": "...",
     "relayerAddresses": [...],
     "historicalBlocks": 1000,
     "database": {...}
+  },
+  "tornPriceMonitor": {
+    "enabled": true,
+    "interval": 300,
+    "priceChangeThreshold": 5,
+    "priceThresholds": {
+      "high": 0.01,
+      "low": 0.005
+    },
+    "telegram": {...}
   }
 }
 ```
@@ -100,8 +119,8 @@ The monitor now supports both services in a single configuration file with clear
       {
         "apiUrl": "https://tornado.bitah.link/v1/status",
         "name": "Ethereum",
-        "interval": 30000,
-        "timeout": 10000,
+        "interval": 30,
+        "timeout": 10,
         "maxQueue": 5,
         "maxConsecutiveFailures": 3,
         "telegram": {
@@ -112,13 +131,13 @@ The monitor now supports both services in a single configuration file with clear
       }
     ],
     "defaults": {
-      "interval": 30000,
-      "timeout": 10000,
+      "interval": 30,
+      "timeout": 10,
       "maxQueue": 3,
       "maxConsecutiveFailures": 3
     },
     "enableHealthSummary": true,
-    "healthSummaryInterval": 300000
+    "healthSummaryInterval": 300
   }
 }
 ```
@@ -147,15 +166,36 @@ The monitor now supports both services in a single configuration file with clear
 }
 ```
 
+#### TORN Price Monitor
+
+```json
+{
+  "tornPriceMonitor": {
+    "enabled": true,
+    "interval": 300,
+    "priceChangeThreshold": 5,
+    "priceThresholds": {
+      "high": 0.01,
+      "low": 0.005
+    },
+    "telegram": {
+      "botToken": "YOUR_BOT_TOKEN",
+      "chatId": "YOUR_CHAT_ID",
+      "enabled": true
+    }
+  }
+}
+```
+
 ### Service Control
 
-Both services can be enabled independently:
+All three services can be enabled independently:
 
 - **Health Monitoring Only**: Include only `healthMonitoring` section
 - **StakeBurned Monitoring Only**: Include only `stakeBurnedListener` section  
-- **Both Services**: Include both sections in the same config file
-- **Disable Health Monitoring**: Set `enabled: false` in `healthMonitoring`, or omit the section entirely
-- **Disable StakeBurned Monitoring**: Set `enabled: false` in `stakeBurnedListener`, or omit the section entirely
+- **TORN Price Monitoring Only**: Include only `tornPriceMonitor` section
+- **Multiple Services**: Include any combination of sections in the same config file
+- **Disable Services**: Set `enabled: false` in any service section, or omit the section entirely
 
 ### Configuration Files
 
@@ -318,12 +358,12 @@ export TELEGRAM_ENABLED="true"
 | `enabled` | boolean | true | Enable health monitoring service |
 | `apiUrl` | string | Required | Tornado API endpoint |
 | `name` | string | "Unknown" | Network name for logging |
-| `interval` | number | 30000 | Check interval (ms) |
-| `timeout` | number | 10000 | Request timeout (ms) |
+| `interval` | number | 30 | Check interval (seconds) |
+| `timeout` | number | 10 | Request timeout (seconds) |
 | `maxQueue` | number | 3 | Queue threshold for alerts |
 | `maxConsecutiveFailures` | number | 3 | Failures before alerting |
 | `enableHealthSummary` | boolean | true | Enable periodic health summaries |
-| `healthSummaryInterval` | number | 300000 | Health summary interval (ms) |
+| `healthSummaryInterval` | number | 300 | Health summary interval (seconds) |
 
 ### StakeBurned Monitoring Options
 
@@ -339,6 +379,19 @@ export TELEGRAM_ENABLED="true"
 | `database.user` | string | Required | MySQL username |
 | `database.password` | string | Required | MySQL password |
 | `database.database` | string | Required | MySQL database name |
+
+### TORN Price Monitor Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | boolean | true | Enable TORN price monitoring service |
+| `interval` | number | 300 | Price check interval in seconds |
+| `priceChangeThreshold` | number | 5 | Price change percentage threshold for alerts |
+| `priceThresholds.high` | number | Required | High price threshold (ETH) |
+| `priceThresholds.low` | number | Required | Low price threshold (ETH) |
+| `telegram.botToken` | string | Required | Telegram bot token |
+| `telegram.chatId` | string | Required | Telegram chat ID |
+| `telegram.enabled` | boolean | true | Enable Telegram alerts |
 
 ### Global Options
 
@@ -372,19 +425,29 @@ A network is considered **healthy** when:
 
 ```
 src/
-├── index.ts                  # Main service orchestrator
-├── tornadoHealthMonitor.ts   # Health monitoring classes
-├── stakeBurnedListener.ts    # StakeBurned event monitoring
-├── database.ts              # Database operations
-├── types.ts                 # TypeScript interfaces 
-├── telegram.ts              # Telegram alert sender
-├── config.ts                # Configuration loader
-└── ...
+├── index.ts                           # Main service orchestrator
+├── types.ts                          # Global TypeScript interfaces
+├── config/
+│   └── config.ts                     # Configuration management
+├── database/
+│   └── database.ts                   # Database operations
+└── services/
+    ├── health/                       # Health monitoring services
+    │   ├── tornadoHealthMonitor.ts   # Multi-network health monitor
+    │   └── healthAlertService.ts     # Health-specific alerts
+    ├── events/                       # Event monitoring services
+    │   └── stakeBurnedListener.ts    # StakeBurned event listener
+    ├── price/                        # Price monitoring services
+    │   ├── tornPriceMonitor.ts       # TORN price monitor
+    │   ├── priceService.ts           # Price fetching utilities
+    │   └── priceAlertService.ts      # Price-specific alerts
+    └── notifications/                # Notification services
+        └── telegramClient.ts         # Telegram client
 
-dist/                        # Compiled JavaScript
-config.example.json          # Example configuration
-package.json                 # Dependencies and scripts
-tsconfig.json               # TypeScript configuration
+dist/                                 # Compiled JavaScript
+config.example.json                   # Example configuration
+package.json                          # Dependencies and scripts
+tsconfig.json                        # TypeScript configuration
 ```
 
 ### Available Scripts

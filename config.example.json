@@ -8,8 +8,8 @@
       {
         "apiUrl": "https://tornado.bitah.link/v1/status",
         "name": "Ethereum",
-        "interval": 30000,
-        "timeout": 10000,
+        "interval": 30,
+        "timeout": 10,
         "maxQueue": 5,
         "maxConsecutiveFailures": 3,
         "telegram": {
@@ -21,8 +21,8 @@
       {
         "apiUrl": "https://bsc-tornado.bitah.link/v1/status", 
         "name": "BSC",
-        "interval": 45000,
-        "timeout": 15000,
+        "interval": 45,
+        "timeout": 15,
         "maxQueue": 10,
         "maxConsecutiveFailures": 2,
         "telegram": {
@@ -34,20 +34,20 @@
       {
         "apiUrl": "https://polygon-tornado.bitah.link/v1/status",
         "name": "Polygon", 
-        "interval": 60000,
-        "timeout": 12000,
+        "interval": 60,
+        "timeout": 12,
         "maxQueue": 8,
         "maxConsecutiveFailures": 3
       }
     ],
     "defaults": {
-      "interval": 30000,
-      "timeout": 10000,
+      "interval": 30,
+      "timeout": 10,
       "maxQueue": 3,
       "maxConsecutiveFailures": 3
     },
     "enableHealthSummary": true,
-    "healthSummaryInterval": 300000
+    "healthSummaryInterval": 300
   },
   "stakeBurnedListener": {
     "enabled": true,
@@ -64,6 +64,20 @@
       "user": "tornado_monitor",
       "password": "YOUR_DB_PASSWORD",
       "database": "tornado_events"
+    }
+  },
+  "tornPriceMonitor": {
+    "enabled": true,
+    "interval": 300,
+    "priceChangeThreshold": 5,
+    "priceThresholds": {
+      "high": 0.01,
+      "low": 0.005
+    },
+    "telegram": {
+      "botToken": "YOUR_BOT_TOKEN",
+      "chatId": "YOUR_CHAT_ID",
+      "enabled": true
     }
   }
 }

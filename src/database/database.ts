@@ -1,5 +1,5 @@
 import mysql from "mysql2/promise";
-import { DatabaseConfig, StakeBurnedEvent } from "./types.js";
+import { DatabaseConfig, StakeBurnedEvent } from "../types.js";
 
 export class Database {
   private connection: mysql.Connection | null = null;

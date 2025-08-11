@@ -1,11 +1,13 @@
-import { TornadoMultiNetworkHealthMonitor } from "./tornadoHealthMonitor.js";
-import { StakeBurnedListener } from "./stakeBurnedListener.js";
-import { ConfigLoader } from "./config.js";
+import { TornadoMultiNetworkHealthMonitor } from "./services/health/tornadoHealthMonitor.js";
+import { StakeBurnedListener } from "./services/events/stakeBurnedListener.js";
+import { TornPriceMonitor } from "./services/price/tornPriceMonitor.js";
+import { ConfigLoader } from "./config/config.js";
 import { ConfigFile } from "./types.js";
 
 class TornadoMonitorService {
   private multiNetworkMonitor?: TornadoMultiNetworkHealthMonitor;
   private stakeBurnedListener?: StakeBurnedListener;
+  private tornPriceMonitor?: TornPriceMonitor;
   private config: ConfigFile;
 
   constructor(configPath?: string) {
@@ -33,6 +35,13 @@ class TornadoMonitorService {
       await this.stakeBurnedListener.startListening();
     }
 
+    // Start TORN price monitor if configured and enabled
+    if (this.config.tornPriceMonitor && this.config.tornPriceMonitor.enabled !== false) {
+      console.log("💰 Initializing TORN price monitor...");
+      this.tornPriceMonitor = new TornPriceMonitor(this.config.tornPriceMonitor);
+      await this.tornPriceMonitor.start();
+    }
+
     console.log("✅ All services started successfully");
   }
 
@@ -49,6 +58,11 @@ class TornadoMonitorService {
       await this.stakeBurnedListener.stop();
     }
 
+    if (this.tornPriceMonitor) {
+      console.log("Stopping TORN price monitor...");
+      this.tornPriceMonitor.stop();
+    }
+
     console.log("✅ All services stopped");
   }
 
@@ -56,6 +70,7 @@ class TornadoMonitorService {
     return {
       healthMonitor: this.multiNetworkMonitor?.getStatus(),
       stakeBurnedListener: this.stakeBurnedListener ? "running" : "not configured",
+      tornPriceMonitor: this.tornPriceMonitor?.getStatus() || "not configured",
     };
   }
 }

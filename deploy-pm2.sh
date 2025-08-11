@@ -150,7 +150,7 @@ validate_config() {
     # Test Telegram connection only if health monitoring is enabled
     log_info "Testing Telegram connection..."
     if node -e "
-        import('./dist/config.js').then(({ ConfigLoader }) => {
+        import('./dist/config/config.js').then(({ ConfigLoader }) => {
             const config = ConfigLoader.loadConfig();
             
             // Only check telegram if health monitoring is enabled
@@ -175,7 +175,7 @@ validate_config() {
                 console.log('No Telegram configuration found');
                 process.exit(1);
             }
-            import('./dist/telegram.js').then(({ TelegramAlertSender }) => {
+            import('./dist/services/notifications/telegramClient.js').then(({ TelegramAlertSender }) => {
                 const sender = new TelegramAlertSender(networkWithTelegram.telegram);
                 sender.testConnection().then(result => {
                     process.exit(result ? 0 : 1);
