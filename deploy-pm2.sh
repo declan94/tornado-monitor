@@ -175,8 +175,8 @@ validate_config() {
                 console.log('No Telegram configuration found');
                 process.exit(1);
             }
-            import('./dist/services/notifications/telegramClient.js').then(({ TelegramAlertSender }) => {
-                const sender = new TelegramAlertSender(networkWithTelegram.telegram);
+            import('./dist/services/notifications/telegramClient.js').then(({ TelegramClient }) => {
+                const sender = new TelegramClient(networkWithTelegram.telegram);
                 sender.testConnection().then(result => {
                     process.exit(result ? 0 : 1);
                 }).catch(() => process.exit(1));
