@@ -48,7 +48,7 @@ export class TelegramClient {
 
   async testConnection(): Promise<boolean> {
     try {
-      const testMessage = "🧪 *Connection Test*\n\nTelegram is working correctly!";
+      const testMessage = "🧪 *Connection Test*\nTelegram is working correctly!";
       return await this.sendMessage(testMessage);
     } catch (error) {
       console.error("Telegram connection test failed:", error);
