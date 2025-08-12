@@ -270,6 +270,8 @@ When price thresholds are crossed or significant price changes occur:
 #PriceChange
 ```
 
+The price change alerts use smart tracking - percentage changes are calculated against the last price that triggered an alert, not the previous price check. This prevents alert spam during continued price movements in the same direction.
+
 ```
 🔺 *TORN Price Threshold Alert*
 *Time:* 2024-01-15T10:30:45.123Z
