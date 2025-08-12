@@ -19,6 +19,7 @@ export class TornPriceMonitor {
   private config: PriceMonitorConfig;
   private intervalId?: NodeJS.Timeout;
   private lastPrice: string | null = null;
+  private lastAlertPrice: string | null = null;
   private isRunning = false;
 
   constructor(config: PriceMonitorConfig) {
@@ -75,6 +76,7 @@ export class TornPriceMonitor {
           priceThresholds: this.config.priceThresholds,
           timestamp: new Date(),
         });
+        this.lastAlertPrice = this.lastPrice;
       }
     } catch (error) {
       console.error("❌ Failed to get initial TORN price:", error);
@@ -114,10 +116,10 @@ export class TornPriceMonitor {
       const currentPriceNum = parseFloat(currentPrice);
       const timestamp = new Date();
 
-      // Check for alerts only if we have a previous price
-      if (this.lastPrice) {
-        const lastPriceNum = parseFloat(this.lastPrice);
-        const changePercent = ((currentPriceNum - lastPriceNum) / lastPriceNum) * 100;
+      // Check for alerts only if we have a previous alert price
+      if (this.lastAlertPrice) {
+        const lastAlertPriceNum = parseFloat(this.lastAlertPrice);
+        const changePercent = ((currentPriceNum - lastAlertPriceNum) / lastAlertPriceNum) * 100;
 
         // Check price change threshold
         if (
@@ -127,15 +129,17 @@ export class TornPriceMonitor {
           await this.alertService.sendAlert({
             type: "price_change",
             currentPrice,
-            previousPrice: this.lastPrice,
+            previousPrice: this.lastAlertPrice,
             changePercent,
             timestamp,
           });
+          this.lastAlertPrice = currentPrice;
         }
 
-        // Check price thresholds
-        if (this.config.priceThresholds) {
+        // Check price thresholds (using lastPrice for threshold crossing detection)
+        if (this.config.priceThresholds && this.lastPrice) {
           const { high, low } = this.config.priceThresholds;
+          const lastPriceNum = parseFloat(this.lastPrice);
 
           if (high && currentPriceNum >= high && lastPriceNum < high) {
             await this.alertService.sendAlert({
@@ -144,6 +148,7 @@ export class TornPriceMonitor {
               threshold: high,
               timestamp,
             });
+            this.lastAlertPrice = currentPrice;
           }
 
           if (low && currentPriceNum <= low && lastPriceNum > low) {
@@ -153,6 +158,7 @@ export class TornPriceMonitor {
               threshold: low,
               timestamp,
             });
+            this.lastAlertPrice = currentPrice;
           }
         }
       }
@@ -223,6 +229,7 @@ export class TornPriceMonitor {
       running: this.isRunning,
       interval: this.config.interval,
       lastPrice: this.lastPrice,
+      lastAlertPrice: this.lastAlertPrice,
       priceChangeThreshold: this.config.priceChangeThreshold,
       priceThresholds: this.config.priceThresholds,
       telegramEnabled: this.config.telegram?.enabled || false

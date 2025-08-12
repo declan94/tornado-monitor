@@ -108,10 +108,11 @@ export class ConfigLoader {
       });
 
       console.log(`Loaded ${config.healthMonitoring.networks.length} network configurations`);
-      
+
       // Convert healthSummaryInterval from seconds to milliseconds
       if (config.healthMonitoring.healthSummaryInterval) {
-        config.healthMonitoring.healthSummaryInterval = config.healthMonitoring.healthSummaryInterval * 1000;
+        config.healthMonitoring.healthSummaryInterval =
+          config.healthMonitoring.healthSummaryInterval * 1000;
       }
     }
 
@@ -208,16 +209,16 @@ export class ConfigLoader {
     // Only start watching if this is the first callback
     if (this.watcherCallbacks.length === 1) {
       console.log(`🔍 Watching config file for changes: ${this.currentConfigPath}`);
-      
+
       let reloadTimeout: NodeJS.Timeout | null = null;
-      
+
       watchFile(this.currentConfigPath, { interval: 1000 }, (curr, prev) => {
         if (curr.mtime > prev.mtime) {
           // Debounce rapid changes
           if (reloadTimeout) {
             clearTimeout(reloadTimeout);
           }
-          
+
           reloadTimeout = setTimeout(() => {
             console.log("📝 Config file changed, reloading...");
             this.reloadConfig();
@@ -236,11 +237,11 @@ export class ConfigLoader {
       const content = readFileSync(this.currentConfigPath, "utf-8");
       const config = JSON.parse(content) as ConfigFile;
       const validatedConfig = this.validateAndMergeConfig(config);
-      
+
       console.log("✅ Configuration reloaded successfully");
-      
+
       // Notify all watchers
-      this.watcherCallbacks.forEach(callback => {
+      this.watcherCallbacks.forEach((callback) => {
         try {
           callback(validatedConfig);
         } catch (error) {

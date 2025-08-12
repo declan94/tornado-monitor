@@ -23,11 +23,12 @@ A comprehensive TypeScript-based monitoring service for Tornado Cash infrastruct
 
 ### TORN Price Monitoring
 - 💰 **Real-time price tracking** - Monitor TORN token price in ETH
-- 📊 **Price change alerts** - Configurable percentage change thresholds
+- 📊 **Price change alerts** - Configurable percentage change thresholds with smart alert tracking
 - 🚨 **Price threshold alerts** - Alerts for high/low price levels
 - 🤖 **Telegram notifications** - Rich formatted price alerts
 - 📈 **Historical price data** - Stores price data with StakeBurned events
 - 🔄 **Dynamic config reloading** - Update thresholds without restart
+- 🎯 **Smart alert management** - Prevents spam by tracking last alert price for percentage changes
 
 ## Quick Start
 
