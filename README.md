@@ -603,6 +603,196 @@ pm2 stop tornado-monitor
 pm2 monit
 ```
 
+### Docker Deployment (Recommended)
+
+Deploy Tornado Monitor with Docker and Docker Compose for easy setup and isolation. This method includes MySQL database setup automatically.
+
+#### Prerequisites
+
+- Docker 20.10+
+- Docker Compose 2.0+
+
+#### Quick Start with Docker
+
+```bash
+# 1. Clone the repository
+git clone <your-repo>
+cd tornado-monitor
+
+# 2. Create environment file
+cp .env.example .env
+# Edit .env with your MySQL credentials
+
+# 3. Create and configure config file
+cp config.docker.json config.json
+# Edit config.json with your settings:
+#   - Update Telegram bot tokens and chat IDs
+#   - Set your Infura/RPC URL
+#   - Update database password to match .env
+#   - Note: database host should be "mysql" (not "localhost")
+
+# 4. Start services with Docker Compose
+docker-compose up -d
+
+# 5. View logs
+docker-compose logs -f tornado-monitor
+```
+
+#### Docker Configuration
+
+**Important:** When using Docker, your `config.json` must use `"mysql"` as the database host (the Docker Compose service name), not `"localhost"`:
+
+```json
+{
+  "stakeBurnedListener": {
+    "database": {
+      "host": "mysql",
+      "port": 3306,
+      "user": "tornado_monitor",
+      "password": "your_password_from_env_file",
+      "database": "tornado_events"
+    }
+  }
+}
+```
+
+#### Docker Compose Services
+
+The `docker-compose.yml` includes:
+
+- **mysql**: MySQL 8.0 database with persistent volume
+  - Exposes port 3306 (configurable via `MYSQL_PORT` in .env)
+  - Automatic initialization via `init-db.sql`
+  - Health checks for service readiness
+
+- **tornado-monitor**: The monitoring service
+  - Automatically built from Dockerfile
+  - Waits for MySQL to be healthy before starting
+  - Mounts `config.json` and `logs/` directory
+  - Auto-restarts on failure
+
+#### Docker Management Commands
+
+```bash
+# Start services
+docker-compose up -d
+
+# Stop services
+docker-compose down
+
+# Stop and remove volumes (⚠️ deletes database data)
+docker-compose down -v
+
+# View logs
+docker-compose logs -f                    # All services
+docker-compose logs -f tornado-monitor    # Monitor only
+docker-compose logs -f mysql              # MySQL only
+
+# Restart services
+docker-compose restart
+
+# Rebuild after code changes
+docker-compose up -d --build
+
+# View service status
+docker-compose ps
+
+# Execute commands in running container
+docker-compose exec tornado-monitor sh
+docker-compose exec mysql mysql -u root -p
+
+# Check MySQL database
+docker-compose exec mysql mysql -u tornado_monitor -p tornado_events
+```
+
+#### Updating Configuration
+
+You can update the `config.json` file and the monitor will automatically reload price monitoring settings:
+
+```bash
+# 1. Edit config.json on host
+nano config.json
+
+# 2. The running container will detect changes automatically
+# Check logs to see reload messages
+docker-compose logs -f tornado-monitor
+```
+
+For health monitoring or StakeBurned listener changes, restart the service:
+
+```bash
+docker-compose restart tornado-monitor
+```
+
+#### Docker Volumes
+
+The setup creates persistent volumes:
+
+- `mysql_data`: MySQL database data (persists across container restarts)
+- `./logs`: Application logs (mounted from host)
+- `./config.json`: Configuration file (mounted from host, read-only)
+
+#### Security Best Practices
+
+1. **Change default passwords** in `.env` file
+2. **Use strong passwords** for MySQL root and user accounts
+3. **Limit MySQL port exposure**: Remove the `ports:` section from mysql service if not needed externally
+4. **Keep secrets secure**: Never commit `.env` or `config.json` to version control
+5. **Regular updates**: Keep Docker images updated
+   ```bash
+   docker-compose pull
+   docker-compose up -d
+   ```
+
+#### Troubleshooting Docker Deployment
+
+**MySQL connection refused:**
+```bash
+# Check if MySQL is healthy
+docker-compose ps
+
+# View MySQL logs
+docker-compose logs mysql
+
+# Ensure config.json uses "mysql" as host, not "localhost"
+```
+
+**Monitor service exits immediately:**
+```bash
+# Check monitor logs for errors
+docker-compose logs tornado-monitor
+
+# Verify config.json is valid JSON
+cat config.json | jq .
+
+# Ensure config.json exists in project root
+ls -la config.json
+```
+
+**Database data persistence:**
+```bash
+# List volumes
+docker volume ls | grep tornado
+
+# Inspect volume
+docker volume inspect tornado-monitor_mysql_data
+
+# Backup database
+docker-compose exec mysql mysqldump -u root -p tornado_events > backup.sql
+
+# Restore database
+docker-compose exec -T mysql mysql -u root -p tornado_events < backup.sql
+```
+
+**Container resource usage:**
+```bash
+# Check resource usage
+docker stats
+
+# View detailed container info
+docker-compose exec tornado-monitor top
+```
+
 ## Error Handling
 
 The monitor includes comprehensive error handling:

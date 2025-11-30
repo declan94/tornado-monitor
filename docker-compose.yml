@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: tornado-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password_change_me}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-tornado_events}
+      MYSQL_USER: ${MYSQL_USER:-tornado_monitor}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-tornado_password_change_me}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    networks:
+      - tornado-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_password_change_me}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  tornado-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tornado-monitor
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      # Mount your config file from host
+      - ./config.json:/app/config.json:ro
+      # Optional: mount logs directory
+      - ./logs:/app/logs
+    environment:
+      # Override these in .env file or config.json
+      NODE_ENV: ${NODE_ENV:-production}
+      TZ: ${TZ:-UTC}
+    networks:
+      - tornado-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  tornado-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local

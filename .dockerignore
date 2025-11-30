@@ -1,0 +1,76 @@
+# Node modules
+node_modules/
+npm-debug.log
+
+# Build output (will be built in container)
+dist/
+build/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Test files
+test/
+tests/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Environment files (should be mounted as volumes)
+.env
+.env.*
+config.json
+config.local.json
+config.production.json
+config.development.json
+configs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Coverage
+coverage/
+.nyc_output/
+
+# PM2
+.pm2/
+ecosystem.config.js
+deploy-pm2.sh
+
+# Backups
+*.bak
+*.backup
+backups/
