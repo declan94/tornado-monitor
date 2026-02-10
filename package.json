@@ -14,6 +14,7 @@
     "test:alert": "node test-alert.js",
     "lint": "prettier --check src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
+    "backfill": "tsx src/cli/backfill.ts",
     "config:create": "node -e \"console.log(JSON.stringify(require('./dist/config.js').ConfigLoader.createExampleConfig(), null, 2))\" > config.json"
   },
   "dependencies": {

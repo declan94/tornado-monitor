@@ -187,6 +187,53 @@ export class StakeBurnedListener {
     }
   }
 
+  async backfillEvents(relayerAddress: string, fromBlock: number, toBlock: number): Promise<void> {
+    const CHUNK_SIZE = 5000;
+    const normalizedRelayer = relayerAddress.toLowerCase();
+    const filter = this.contract.filters.StakeBurned();
+
+    let totalEvents = 0;
+    let totalBurned = 0n;
+
+    console.log(`\nBackfilling StakeBurned events for relayer: ${relayerAddress}`);
+    console.log(`Block range: ${fromBlock} - ${toBlock} (${toBlock - fromBlock} blocks)\n`);
+
+    for (let start = fromBlock; start <= toBlock; start += CHUNK_SIZE) {
+      const end = Math.min(start + CHUNK_SIZE - 1, toBlock);
+      console.log(`Querying blocks ${start} - ${end}...`);
+
+      try {
+        const events = await this.contract.queryFilter(filter, start, end);
+
+        for (const event of events) {
+          if (!("args" in event)) continue;
+          const [relayer, amountBurned] = event.args!;
+
+          if (relayer.toLowerCase() !== normalizedRelayer) continue;
+
+          totalEvents++;
+          totalBurned += amountBurned;
+
+          const block = await this.provider.getBlock(event.blockNumber);
+          const timestamp = block ? new Date(block.timestamp * 1000).toISOString() : "unknown";
+          const amountFormatted = ethers.formatEther(amountBurned);
+
+          console.log(
+            `  #${totalEvents} | Block ${event.blockNumber} | ${amountFormatted} TORN | TX: ${event.transactionHash} | ${timestamp}`
+          );
+        }
+      } catch (error) {
+        console.error(`Error querying blocks ${start}-${end}:`, error);
+      }
+    }
+
+    console.log(`\n--- Backfill Summary ---`);
+    console.log(`Relayer: ${relayerAddress}`);
+    console.log(`Block range: ${fromBlock} - ${toBlock}`);
+    console.log(`Total events: ${totalEvents}`);
+    console.log(`Total burned: ${ethers.formatEther(totalBurned)} TORN`);
+  }
+
   async stop() {
     this.contract.removeAllListeners("StakeBurned");
     await this.database.close();
